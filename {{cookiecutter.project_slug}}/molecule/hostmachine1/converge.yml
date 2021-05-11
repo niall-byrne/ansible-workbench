@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+  connection: local
+  vars:
+    test: true
+  tasks:
+    - name: "Include {{ cookiecutter.github_handle.lower().replace(' ', '_').replace('-', '_') }}.{{ cookiecutter.project_slug }}"
+      ansible.builtin.include_role:
+        name: "{{ cookiecutter.github_handle.lower().replace(' ', '_').replace('-', '_') }}.{{ cookiecutter.project_slug }}"

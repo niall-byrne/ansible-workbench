@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: {{ cookiecutter.project_slug }}
+  namespace: {{ cookiecutter.github_handle.lower().replace(' ', '_').replace('-', '_') }}
+  author: {{ cookiecutter.author }}
+  description: {{ cookiecutter.description }}
+  company: {{ cookiecutter.company }}
+  license: MPL-2
+  platforms:
+    - name: MacOSX
+      versions:
+        - '10.15'
+        - '10.14'
+  min_ansible_version: 3.3.0
+  galaxy_tags:
+    - osx
+
+dependencies: []

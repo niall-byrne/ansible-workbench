@@ -1,0 +1,8 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: PlaceHolder Task
+      debug:
+        msg: "Verification Script."

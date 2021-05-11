@@ -1,0 +1,61 @@
+name: {{ cookiecutter.project_slug }}-releases
+
+# Workflow Secrets:
+# SLACK_WEBHOOK              (Required, for slack notifications...)
+# GALAXY_API_KEY             (Required, for Ansible Galaxy Import...)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      TAG:
+        description: 'Tag to Deploy'
+        required: true
+        default: ''
+
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Setup Environment
+        run: |
+          BRANCH_OR_TAG="$(echo "${GITHUB_REF}" | sed 's/refs\/heads\///g' | sed 's/refs\/tags\///g')"
+          PROJECT_NAME="{{ cookiecutter.project_slug }}"
+          echo "BRANCH_OR_TAG=${BRANCH_OR_TAG}" >> $GITHUB_ENV
+          echo "WEBHOOK_URL=${WEBHOOK_URL}" >> $GITHUB_ENV
+          echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
+          echo "NOTIFICATION=${PROJECT_NAME} [${BRANCH_OR_TAG}]" >> $GITHUB_ENV
+          echo "USERNAME={{ cookiecutter.github_handle }}" >> $GITHUB_ENV{% raw %}
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      - name: Code Checkout (workflow dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.TAG  }}
+      - name: Code Checkout (published release)
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Install Requirements
+        run: |
+          pip install poetry
+          poetry install
+      - name: Trigger Ansible Galaxy Import
+        run: |
+           ansible-galaxy role import ${USERNAME} ${PROJECT_NAME} --token ${API_KEY}
+        env:
+          API_KEY: ${{ secrets.GALAXY_API_KEY }}
+      - name: Production -- Report Success
+        run: |
+          ./.github/notifications.sh "${NOTIFICATION}" "automated galaxy import has been completed!"
+      - name: Production -- Report Failure
+        if: failure()
+        run: |
+          ./.github/notifications.sh "${NOTIFICATION}" "automated galaxy import has failed!"
+{% endraw %}

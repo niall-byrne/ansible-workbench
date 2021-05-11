@@ -1,0 +1,9 @@
+{
+    "project_name": "Flower Generator",
+    "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+    "description": "Not the baking kind.",
+    "author": "Niall Byrne",
+    "company": "Shared Vision Solutions",
+    "email": "niall@niallbyrne.ca",
+    "github_handle": "niall-byrne"
+}

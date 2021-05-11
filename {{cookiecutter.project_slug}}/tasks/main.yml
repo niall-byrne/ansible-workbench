@@ -1,0 +1,5 @@
+---
+# tasks file for {{ cookiecutter.project_slug }}
+
+- name: Placeholder Task
+  debug: msg="Your dedication and hard work goes here."

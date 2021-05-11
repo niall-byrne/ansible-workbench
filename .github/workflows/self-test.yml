@@ -1,0 +1,229 @@
+name: ansible-workbench-self-test
+
+# Required Github Repository Secrets:
+# REMOTE_TOKEN      - Github Token With Access To This Repo
+# REMOTE_ORIGIN     - The git remote repository name (organization/repo)
+# SLACK_WEBHOOK     - The slack webhook for build notifications
+
+on:
+  push:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+
+  documentation_test:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [ 3.7 ]
+
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          path: 'template'
+      - name: Setup Environment
+        run: |
+          source ./template/.github/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Create Template
+        run: |
+          source ./template/.github/template.sh
+
+      - name: Check Markdown Links For Readme
+        uses: gaurav-nelson/github-action-markdown-link-check@1.0.11
+        with:
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          folder-path: 'template, template/.github/workflows'
+          max-depth: 1
+      - name: Check Markdown Links For Rendered Template
+        uses: gaurav-nelson/github-action-markdown-link-check@1.0.11
+        with:
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          folder-path: './flower_generator'
+          max-depth: -1
+
+      - name: Report Job Status on Success
+        run: |
+          ./template/.github/notifications.sh "${NOTIFICATION}" "documentation checks succeeded!"
+      - name: Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/.github/notifications.sh "${NOTIFICATION}" "documentation checks failed!"
+
+  linting:
+
+    runs-on: ubuntu-20.04
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.7]
+
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          path: 'template'
+      - name: Setup Environment
+        run: |
+          source ./template/.github/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Create Template
+        run: |
+          source ./template/.github/template.sh
+
+      - name: Lint Role Defaults
+        run: |
+          cd flower_generator
+          poetry run molecule lint
+
+      - name: Report Job Status on Success
+        run: |
+          ./template/.github/notifications.sh "${NOTIFICATION}" "linting checks succeeded!"
+      - name: Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/.github/notifications.sh "${NOTIFICATION}" "linting checks failed!"
+
+  push_repository_test:
+    needs: [linting, documentation_test]
+
+    runs-on: ubuntu-20.04
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.7]
+
+    steps:
+
+      - uses: actions/checkout@v2
+        with:
+          path: 'template'
+          persist-credentials: false
+      - name: Setup Environment
+        run: |
+          source ./template/.github/setup.sh "GitHub Action" "action@github.com"
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Create Template
+        run: |
+          source ./template/.github/template.sh
+
+      - name: Clean Up Tags for Git Push
+        run: |
+          cd flower_generator
+          git checkout master
+          git tag --delete v0.0.0  # Don't Repush
+          git tag v1.0.0
+      - name: Push To Test Repository (master)
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.REMOTE_TOKEN }}
+          branch: master
+          tags: false
+          directory: flower_generator
+          repository: ${{ secrets.REMOTE_ORIGIN }}
+          force: true
+      - name: Push To Test Repository (production)
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.REMOTE_TOKEN }}
+          branch: production
+          tags: false
+          directory: flower_generator
+          repository: ${{ secrets.REMOTE_ORIGIN }}
+          force: true
+      - name: Push To Test Repository (release tag)
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.REMOTE_TOKEN }}
+          branch: production
+          tags: true
+          directory: flower_generator
+          repository: ${{ secrets.REMOTE_ORIGIN }}
+          force: true
+
+      - name: Report Job Status on Success
+        run: |
+          ./template/.github/notifications.sh "${NOTIFICATION}" "push has been triggered!"
+      - name: Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/.github/notifications.sh "${NOTIFICATION}" "push failed to trigger!"
+
+  create_releases:
+    needs: [push_repository_test]
+
+    runs-on: ubuntu-20.04
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [ 3.7 ]
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: Setup Environment
+        if: contains(github.ref, '/tags/v')
+        run: |
+          source .github/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Releases -- Prepare Release Content
+        if: contains(github.ref, '/tags/v')
+        run: |
+          echo "{}" > package.json
+      - name: Production -- Generate Changelog
+        if: contains(github.ref, '/tags/v')
+        uses: scottbrenner/generate-changelog-action@1.0.3
+        id: Changelog
+        env:
+          REPO: ${{ github.repository }}
+      - name: Production -- Create Release
+        if: contains(github.ref, '/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.BRANCH_OR_TAG }}
+          release_name: Release ${{ env.BRANCH_OR_TAG }}
+          body: |
+            ${{ steps.Changelog.outputs.changelog }}
+            ## Deployment Checklist
+            - [ ] Ensure correct version is notated
+            - [ ] Ensure documentation is accurate
+            - [ ] Ensure self test passes
+          draft: true
+          prerelease: false
+
+      - name: Report Job Status on Success
+        if: contains(github.ref, '/tags/v')
+        run: |
+          .github/notifications.sh "${NOTIFICATION}" "automated release has been created!"
+      - name: Report Job Status on Failure
+        if: failure()
+        run: |
+          .github/notifications.sh "${NOTIFICATION}" "automated release has failed!"
