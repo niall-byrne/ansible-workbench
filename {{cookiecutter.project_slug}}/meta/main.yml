@@ -1,7 +1,7 @@
 ---
 galaxy_info:
-  role_name: {{ cookiecutter.project_slug }}
-  namespace: {{ cookiecutter.github_handle.lower().replace(' ', '_').replace('-', '_') }}
+  role_name: {{ cookiecutter.galaxy_role_slug }}
+  namespace: {{ cookiecutter.galaxy_namespace_slug }}
   author: {{ cookiecutter.author }}
   description: {{ cookiecutter.description }}
   company: {{ cookiecutter.company }}

@@ -1,9 +1,11 @@
 {
     "project_name": "Flower Generator",
-    "project_slug": "{{ cookiecutter.project_name.lower().replace(' ', '_').replace('-', '_') }}",
+    "project_slug": "{{ cookiecutter.project_name|slugify }}",
+    "github_handle": "niall-byrne",
+    "galaxy_role_slug": "{{ cookiecutter.project_slug.replace('-', '_').replace('.', '_') }}",
+    "galaxy_namespace_slug": "{{ cookiecutter.github_handle|slugify|replace('-', '_')|replace('.', '_') }}",
     "description": "Not the baking kind.",
     "author": "Niall Byrne",
     "company": "Shared Vision Solutions",
-    "email": "niall@niallbyrne.ca",
-    "github_handle": "niall-byrne"
+    "email": "niall@niallbyrne.ca"
 }

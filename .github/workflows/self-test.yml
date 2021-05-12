@@ -52,7 +52,7 @@ jobs:
         with:
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
-          folder-path: './flower_generator'
+          folder-path: './flower-generator'
           max-depth: -1
 
       - name: Report Job Status on Success
@@ -92,7 +92,7 @@ jobs:
 
       - name: Lint Role Defaults
         run: |
-          cd flower_generator
+          cd flower-generator
           poetry run molecule lint
 
       - name: Report Job Status on Success
@@ -134,7 +134,7 @@ jobs:
 
       - name: Clean Up Tags for Git Push
         run: |
-          cd flower_generator
+          cd flower-generator
           git checkout master
           git tag --delete v0.0.0  # Don't Repush
           git tag v1.0.0
@@ -144,7 +144,7 @@ jobs:
           github_token: ${{ secrets.REMOTE_TOKEN }}
           branch: master
           tags: false
-          directory: flower_generator
+          directory: flower-generator
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
       - name: Push To Test Repository (production)
@@ -153,7 +153,7 @@ jobs:
           github_token: ${{ secrets.REMOTE_TOKEN }}
           branch: production
           tags: false
-          directory: flower_generator
+          directory: flower-generator
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
       - name: Push To Test Repository (release tag)
@@ -162,7 +162,7 @@ jobs:
           github_token: ${{ secrets.REMOTE_TOKEN }}
           branch: production
           tags: true
-          directory: flower_generator
+          directory: flower-generator
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
 
