@@ -1,5 +1,6 @@
-name: {{ cookiecutter.project_slug }}-pushes
-
+---
+name: {{ cookiecutter.project_slug }}-push
+{% raw %}
 # Workflow Secrets:
 # SLACK_WEBHOOK              (Required, for slack notifications...)
 
@@ -9,75 +10,133 @@ on:
 
 jobs:
 
-  push:
-    runs-on: ubuntu-20.04
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.7]
+
     steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Setup Environment
-      run: |
-        BRANCH_OR_TAG="$(echo "${GITHUB_REF}" | sed 's/refs\/heads\///g' | sed 's/refs\/tags\///g')"
-        PROJECT_NAME="{{ cookiecutter.project_slug }}"
-        echo "BRANCH_OR_TAG=${BRANCH_OR_TAG}" >> $GITHUB_ENV
-        echo "WEBHOOK_URL=${WEBHOOK_URL}" >> $GITHUB_ENV
-        echo "PROJECT_NAME=${PROJECT_NAME}" >> $GITHUB_ENV
-        echo "NOTIFICATION=${PROJECT_NAME} [${BRANCH_OR_TAG}]" >> $GITHUB_ENV
-        echo "USERNAME={{ cookiecutter.github_handle }}" >> $GITHUB_ENV{% raw %}
-      env:
-        WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
+      - name: Build -- Checkout Repository
+        uses: actions/checkout@v1
 
-    - name: Install Requirements
-      run: |
-        pip install poetry
-        poetry install
+      - name: Build -- Setup Environment
+        run: |
+          source ./.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-    - name: Run Linter
-      run: |
-        poetry run molecule lint
-    - name: Run docker1 Scenario
-      run: |
-        poetry run molecule test -s docker1
+      - name: Build -- Install Requirements
+        run: |
+          pip install poetry
+          poetry install
+      - name: Build -- Run Linter
+        run: |
+          poetry run molecule lint
+      - name: Build -- Run docker1 Scenario
+        run: |
+          poetry run molecule test -s docker1
 
-    - name: Report Job Status (Success)
-      run: |
-        ./.github/notifications.sh "${NOTIFICATION}" "build was successful!"
-    - name: Report Job Status
-      if: failure()
-      run: |
-        ./.github/notifications.sh "${NOTIFICATION}" "build has failed!"
+      - name: Build -- Report Job Status (Success)
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "build was successful!"
+      - name: Build -- Report Job Status (Failure)
+        if: failure()
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "build has failed!"
 
-    - name: Prepare Release Content
-      if: contains(github.ref, '/tags/v')
-      run: |
-        NEWTAG=${BRANCH_OR_TAG}
-        echo "NEWTAG=${NEWTAG}" >> $GITHUB_ENV
-        echo "{}" > package.json
-    - name: Generate Changelog
-      if: contains(github.ref, '/tags/v')
-      uses: scottbrenner/generate-changelog-action@1.0.3
-      id: Changelog
-      env:
-        REPO: ${{ github.repository }}
-    - name: Create Release
-      if: contains(github.ref, '/tags/v')
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.NEWTAG }}
-        release_name: Release ${{ env.NEWTAG }}
-        body: |
-          ${{ steps.Changelog.outputs.changelog }}
-        draft: true
-        prerelease: false
-    - name: Production -- Report Success
-      if: contains(github.ref, '/tags/v')
-      run: |
-        ./.github/notifications.sh "${NOTIFICATION}" "automated release has been created: https://github.com/${USERNAME}/${PROJECT_NAME}/releases"
-    - name: Production -- Report Failure
-      if: failure() && contains(github.ref, '/tags/v')
-      run: |
-        ./.github/notifications.sh "${NOTIFICATION}" "automated release generation failed!"
+  documentation_test:
+  
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Documentation Test -- Checkout Repository
+        uses: actions/checkout@v1
+      - name: Documentation Test -- Documentation Validation
+        uses: gaurav-nelson/github-action-markdown-link-check@1.0.11
+        with:
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+
+      - name: Documentation Test -- Report Success
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "documentation test has passed!"
+      - name: Documentation Test -- Report Failure
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "documentation test has failed!"
+
+  security_test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Security Test -- Checkout Repository
+        uses: actions/checkout@v1
+      - name: Security Test -- Run Gitleaks
+        uses: zricethezav/gitleaks-action@master
+
+      - name: Security Test -- Report Success
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "security test has passed!"
+      - name: Security Test -- Report Failure
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "security test has failed!"
+  
+  release:
+    needs: [build, documentation_test, security_test]
+  
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Release -- Checkout
+        uses: actions/checkout@v1
+  
+      - name: Release -- Setup Environment
+        run: |
+          source ./.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+      
+      - name: Release -- Prepare Content
+        if: contains(github.ref, '/tags/v')
+        run: |
+          NEWTAG=${BRANCH_OR_TAG}
+          echo "NEWTAG=${NEWTAG}" >> $GITHUB_ENV
+          echo "{}" > package.json
+      - name: Release -- Generate Changelog
+        if: contains(github.ref, '/tags/v')
+        uses: scottbrenner/generate-changelog-action@1.0.3
+        id: Changelog
+        env:
+          REPO: ${{ github.repository }}
+      - name: Release -- Create Github Release
+        if: contains(github.ref, '/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.NEWTAG }}
+          release_name: Release ${{ env.NEWTAG }}
+          body: |
+            ${{ steps.Changelog.outputs.changelog }}
+          draft: true
+          prerelease: false
+  
+      - name: Release -- Report Job Status (Success)
+        if: contains(github.ref, '/tags/v')
+        run: |
+          ./.github/scripts/notifications.sh \
+              "${NOTIFICATION}" \
+              "automated release has been created: https://github.com/${USERNAME}/${PROJECT_NAME}/releases"
+      - name: Release -- Report Job Status (Failure)
+        if: failure() && contains(github.ref, '/tags/v')
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "automated release generation failed!"     
 {% endraw %}
