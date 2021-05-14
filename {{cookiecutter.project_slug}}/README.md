@@ -2,11 +2,11 @@
 
 ### Master:
 - Travis CI: ![TravisCI](https://travis-ci.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}.svg?branch=master)
-- Github Actions: [![role-homebrew-retry](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml/badge.svg?branch=master)](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml)
+- Github Actions: [![{{cookiecutter.project_slug}}](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml/badge.svg?branch=master)](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml)
 
 ### Production:
 - Travis CI: ![TravisCI](https://travis-ci.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}.svg?branch=production)
-- Github Actions: [![role-homebrew-retry](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml/badge.svg?branch=production)](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml)
+- Github Actions: [![{{cookiecutter.project_slug}}](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml/badge.svg?branch=production)](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/push.yml)
 
 {{ cookiecutter.description }}
 
