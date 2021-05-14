@@ -109,7 +109,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [ 3.7 ]
+        python-version: [3.7]
 
     steps:
       - name: Security Test -- Set up Python ${{ matrix.python-version }}
@@ -117,25 +117,36 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Security Test -- Checkout Repository
-        uses: actions/checkout@v1
+      - name: Shellcheck -- Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          path: 'template'
 
-      - name: Security Test -- Check Dependencies
+      - name: Security Test -- Setup Environment
         run: |
-          pip install safety
-          pip install --upgrade pip
-          safety check
+          source ./template/.github/scripts/setup.sh
+          source ./template/.github/scripts/template.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Security Test -- Run Gitleaks
         uses: zricethezav/gitleaks-action@master
 
+      - name: Security Test -- Check Dependencies
+        run: |
+          pip install --upgrade pip safety
+          cd "${TEMPLATED_NAME}"
+            poetry install
+            safety check
+          cd ..
+
       - name: Shellcheck -- Report Job Status on Success
         run: |
-          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" "security checks succeeded!"
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" "security checks succeeded!"
       - name: Shellcheck -- Report Job Status on Failure
         if: failure()
         run: |
-          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" "security checks failed!"
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" "security checks failed!"
 
   shellcheck_test:
 
