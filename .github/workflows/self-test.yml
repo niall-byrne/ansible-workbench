@@ -292,6 +292,8 @@ jobs:
 
       - name: Shellcheck -- Shellcheck Scripts
         run: |
+          shellcheck ./template/hooks/*.sh
+          shellcheck ./template/scripts/*.sh
           shellcheck ./template/.github/scripts/*.sh
       - name: Shellcheck -- Shellcheck Rendered Scripts
         run: |
