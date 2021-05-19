@@ -1,6 +1,6 @@
 # Ansible Workbench
 
-Ansible Role Development Enviroment.
+Ansible Role Development Environment.
 
 (Please see the [cookiecutter documentation](https://cookiecutter.readthedocs.io/) for instructions on how to use this project template.)
 
@@ -16,7 +16,7 @@ This template generates a development environment for Ansible Roles with a funct
 
 ## Getting Started
 
-- `pip install cookiecutter`
+- `pip install cookiecutter poetry`
 - `cookiecutter https://github.com/shared-vision-solutions/ansible-workbench.git --checkout v0.1.0`
 
 Give your project a name, and populate the other required template inputs.
@@ -37,7 +37,7 @@ A `master` branch will be created, allowing you to manage a separate `production
 
 Use the [pyproject.toml](./{{cookiecutter.project_slug}}/pyproject.toml) file to store your project dependencies in accordance with [PEP 518](https://www.python.org/dev/peps/pep-0518/) and [Poetry Dependency Management](https://python-poetry.org/docs/pyproject/#dependencies-and-dev-dependencies).
 
-Poetry is leverage to manage the Python dependencies:
+Poetry is leveraged to manage the Python dependencies:
 - [Adding Python Packages with Poetry](https://python-poetry.org/docs/cli/#add)
 - [Removing Python Packages With Poetry](https://python-poetry.org/docs/cli/#remove)
 
