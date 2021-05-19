@@ -11,5 +11,5 @@ verifier:
   name: ansible
 lint: |
   set -e
-  yamllint .
+  yamllint -f standard .
   ansible-lint

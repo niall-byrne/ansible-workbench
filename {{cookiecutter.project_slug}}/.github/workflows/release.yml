@@ -25,10 +25,6 @@ jobs:
         python-version: [3.7]
 
     steps:
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Publish to Galaxy -- Code Checkout (workflow dispatch)
         if: github.event_name == 'workflow_dispatch'
@@ -41,6 +37,11 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
+      - name: Publish to Galaxy -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Publish to Galaxy -- Setup Environment
         run: |
@@ -60,9 +61,9 @@ jobs:
 
       - name: Publish to Galaxy -- Report Job Status (Success)
         run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" "automated galaxy import has been completed!"
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "automated ansible galaxy import has been completed!"
       - name: Publish to Galaxy -- Report Job Status (Failure)
         if: failure()
         run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" "automated galaxy import has failed!"
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" "automated ansible galaxy import has failed!"
 {% endraw %}

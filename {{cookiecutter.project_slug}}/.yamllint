@@ -2,12 +2,15 @@
 # Based on ansible-lint config
 extends: default
 
+ignore: |
+  .cache
+
 rules:
   braces:
-    max-spaces-inside: 1
+    max-spaces-inside: 0
     level: error
   brackets:
-    max-spaces-inside: 1
+    max-spaces-inside: 0
     level: error
   colons:
     max-spaces-after: -1
@@ -15,19 +18,26 @@ rules:
   commas:
     max-spaces-after: -1
     level: error
+  indentation:
+    spaces: consistent
+    indent-sequences: true
+    level: error
   comments: disable
   comments-indentation: disable
-  document-start: disable
+  document-start:
+    level: error
   empty-lines:
     max: 3
     level: error
   hyphens:
     level: error
-  indentation: disable
-  key-duplicates: enable
+  key-duplicates:
+    level: error
   line-length: disable
-  new-line-at-end-of-file: disable
+  new-line-at-end-of-file:
+    level: error
   new-lines:
     type: unix
-  trailing-spaces: disable
+  trailing-spaces:
+    level: error
   truthy: disable
