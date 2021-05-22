@@ -14,3 +14,6 @@ install:
 script:
   - poetry run molecule lint
   - poetry run molecule test -s "${SCENARIO}"
+notifications:
+  slack:
+    secure: insert_valid_travis_ci_token_here
