@@ -14,7 +14,12 @@ Ansible Role Development Environment.
 
 This template generates a development environment for Ansible Roles with a functional CI/CD template for both Travis CI and Github.
 
-## Getting Started
+## Requirements
+You'll need [Python](https://www.python.org/) 3.6.1 or later to use this template.
+
+Note: **Ansible is moving towards 3.8.0 or later soon.**
+
+## Quick Start Guide
 
 - `pip install cookiecutter poetry`
 - `cookiecutter https://github.com/shared-vision-solutions/ansible-workbench.git --checkout v0.1.0`

@@ -1,19 +1,18 @@
 [tool.poetry]
 name = "{{cookiecutter.project_slug}}"
-version = "0.1.0"
+version = "0.1.1"
 description = "{{cookiecutter.description}}"
 authors = ["{{cookiecutter.author}} <{{cookiecutter.email}}>"]
 
 [tool.poetry.dependencies]
 python = ">=3.6.1,<4.0"
-ansible = "^3.3.0"
+ansible = "^4.1.0"
 
 [tool.poetry.dev-dependencies]
 ansible-lint = "^5.0.8"
 commitizen = "^2.17.6"
 molecule = {extras = ["docker"], version = "^3.3.0"}
 yamllint = "^1.26.1"
-
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
