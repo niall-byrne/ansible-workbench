@@ -33,7 +33,7 @@ Including an example of how to use your role (for instance, with variables passe
 
     - hosts: all
       roles:
-         - { role: {{ cookiecutter.github_handle }}.{{ cookiecutter.project_slug }} }
+         - { role: {{ cookiecutter.galaxy_namespace_slug }}.{{ cookiecutter.galaxy_role_slug }} }
 
 License
 -------
