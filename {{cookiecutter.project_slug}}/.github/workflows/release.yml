@@ -1,6 +1,6 @@
 ---
 name: {{ cookiecutter.project_slug }}-publish-to-galaxy
-{% raw %}
+
 # Workflow Secrets:
 # SLACK_WEBHOOK              (Required, for slack notifications...)
 # GALAXY_API_KEY             (Required, for Ansible Galaxy Import...)
@@ -15,6 +15,11 @@ on:
         required: true
         default: ''
 
+env:
+  PROJECT_NAME: "{{ cookiecutter.project_slug }}"
+  USERNAME: "{{ cookiecutter.github_handle }}"
+
+{% raw %}
 jobs:
   publish_to_galaxy:
 

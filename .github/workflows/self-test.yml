@@ -12,6 +12,11 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+env:
+  PROJECT_NAME: "ansible-workbench"
+  USERNAME: "shared-vision-solutions"
+  TEMPLATED_NAME: "flower-generator"
+
 jobs:
 
   documentation_test:
@@ -23,7 +28,6 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Documentation Test -- Checkout Repository
         uses: actions/checkout@v2
         with:
@@ -41,14 +45,15 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Documentation Test -- Check Markdown Links For Readme
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.11
+        uses: gaurav-nelson/github-action-markdown-link-check@1.0.12
         with:
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
           folder-path: 'template, template/.github/workflows'
           max-depth: 1
+
       - name: Documentation Test -- Check Markdown Links For Rendered Template
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.11
+        uses: gaurav-nelson/github-action-markdown-link-check@1.0.12
         with:
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
@@ -58,6 +63,7 @@ jobs:
       - name: Documentation Test -- Report Job Status on Success
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
+
       - name: Documentation Test -- Report Job Status on Failure
         if: failure()
         run: |
@@ -72,11 +78,11 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Molecule Lint -- Checkout Repository
         uses: actions/checkout@v2
         with:
           path: 'template'
+
       - name: Molecule Lint -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -97,6 +103,7 @@ jobs:
       - name: Molecule Lint -- Report Job Status on Success
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting checks succeeded!"
+
       - name: Molecule Lint -- Report Job Status on Failure
         if: failure()
         run: |
@@ -112,12 +119,12 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Push Test -- Checkout Repository
         uses: actions/checkout@v2
         with:
           path: 'template'
           persist-credentials: false
+
       - name: Push Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -136,6 +143,7 @@ jobs:
           git checkout master
           git tag --delete v0.0.0  # Don't Repush
           git tag v1.0.0
+
       - name: Push Test -- Push To Test Repository (master)
         uses: ad-m/github-push-action@v0.6.0
         with:
@@ -145,6 +153,7 @@ jobs:
           directory: ${{ env.TEMPLATED_NAME }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
+
       - name: Push Test -- Push To Test Repository (production)
         uses: ad-m/github-push-action@v0.6.0
         with:
@@ -154,6 +163,7 @@ jobs:
           directory: ${{ env.TEMPLATED_NAME }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
+
       - name: Push Test -- Push To Test Repository (release tag)
         uses: ad-m/github-push-action@v0.6.0
         with:
@@ -167,6 +177,7 @@ jobs:
       - name: Push Test -- Report Job Status on Success
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
+
       - name: Push Test -- Report Job Status on Failure
         if: failure()
         run: |
@@ -179,7 +190,9 @@ jobs:
 
     steps:
       - name: Create Release -- Checkout Repository
+        if: contains(github.ref, '/tags/v')
         uses: actions/checkout@v1
+
       - name: Create Release -- Setup Environment
         if: contains(github.ref, '/tags/v')
         run: |
@@ -190,10 +203,11 @@ jobs:
 
       - name: Create Release -- Generate Changelog
         if: contains(github.ref, '/tags/v')
-        uses: scottbrenner/generate-changelog-action@1.0.3
+        uses: scottbrenner/generate-changelog-action@v1.3.3
         id: Changelog
         env:
           REPO: ${{ github.repository }}
+
       - name: Create Release -- Create Github Release
         if: contains(github.ref, '/tags/v')
         uses: actions/create-release@v1
@@ -215,6 +229,7 @@ jobs:
         if: contains(github.ref, '/tags/v')
         run: |
           ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created!\nhttps://github.com/${USERNAME}/${PROJECT_NAME}/releases"
+
       - name: Create Release -- Report Job Status on Failure
         if: failure()
         run: |
@@ -229,7 +244,6 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Security Test -- Checkout Repository
         uses: actions/checkout@v2
         with:
@@ -247,7 +261,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Security Test -- Run Gitleaks
-        uses: zricethezav/gitleaks-action@master
+        uses: zricethezav/gitleaks-action@v1.6.0
 
       - name: Security Test -- Check Dependencies
         run: |
@@ -260,6 +274,7 @@ jobs:
       - name: Security Test -- Report Job Status on Success
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
+
       - name: Security Test -- Report Job Status on Failure
         if: failure()
         run: |
@@ -278,6 +293,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: 'template'
+
       - name: Shellcheck -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -295,6 +311,7 @@ jobs:
           shellcheck ./template/hooks/*.sh
           shellcheck ./template/scripts/*.sh
           shellcheck ./template/.github/scripts/*.sh
+
       - name: Shellcheck -- Shellcheck Rendered Scripts
         run: |
           shellcheck ${TEMPLATED_NAME}/.github/scripts/*.sh
@@ -302,6 +319,7 @@ jobs:
       - name: Shellcheck -- Report Job Status on Success
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: shellcheck checks succeeded!"
+
       - name: Shellcheck -- Report Job Status on Failure
         if: failure()
         run: |
@@ -316,11 +334,11 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Workflow Lint -- Checkout Repository
         uses: actions/checkout@v2
         with:
           path: 'template'
+
       - name: Workflow Lint -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -344,6 +362,7 @@ jobs:
       - name: Workflow Lint -- Report Job Status on Success
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow linting checks succeeded!"
+
       - name: Workflow Lint -- Report Job Status on Failure
         if: failure()
         run: |
