@@ -1,6 +1,6 @@
 ---
 name: {{ cookiecutter.project_slug }}-publish-to-galaxy
-{% raw %}
+
 # Workflow Secrets:
 # SLACK_WEBHOOK              (Required, for slack notifications...)
 # GALAXY_API_KEY             (Required, for Ansible Galaxy Import...)
@@ -15,6 +15,11 @@ on:
         required: true
         default: ''
 
+env:
+  PROJECT_NAME: "{{ cookiecutter.project_slug }}"
+  USERNAME: "{{ cookiecutter.github_handle }}"
+
+{% raw %}
 jobs:
   publish_to_galaxy:
 
@@ -32,6 +37,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.TAG  }}
+
       - name: Publish to Galaxy -- Code Checkout (published release)
         if: github.event_name != 'workflow_dispatch'
         uses: actions/checkout@v2
@@ -62,6 +68,7 @@ jobs:
       - name: Publish to Galaxy -- Report Job Status (Success)
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated ansible galaxy import has been completed!"
+
       - name: Publish to Galaxy -- Report Job Status (Failure)
         if: failure()
         run: |

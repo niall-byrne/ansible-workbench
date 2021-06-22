@@ -3,6 +3,8 @@
 NAME=${1:-"Pro Buddy Dev"}
 EMAIL=${2:-"somedude@coolstartup.com"}
 
+set -eo pipefail
+
 main() {
   pip install cookiecutter poetry
   git config --global user.name "${NAME}"

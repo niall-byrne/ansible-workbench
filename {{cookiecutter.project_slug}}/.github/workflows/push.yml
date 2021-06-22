@@ -1,6 +1,6 @@
 ---
 name: {{ cookiecutter.project_slug }}-push
-{% raw %}
+
 # Workflow Secrets:
 # SLACK_WEBHOOK              (Required, for slack notifications...)
 
@@ -8,7 +8,61 @@ on:
   push:
   workflow_dispatch:
 
+env:
+  PROJECT_NAME: "{{ cookiecutter.project_slug }}"
+  USERNAME: "{{ cookiecutter.github_handle }}"
+  VERBOSE_NOTIFICATIONS: 0
+
+{% raw %}
 jobs:
+
+  create_release:
+    needs: [molecule_test, molecule_lint, documentation_test, security_test, start_notification]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Release -- Checkout Repository
+        if: contains(github.ref, '/tags/v')
+        uses: actions/checkout@v1
+
+      - name: Release -- Setup Environment
+        if: contains(github.ref, '/tags/v')
+        run: |
+          source ./.github/scripts/setup.sh
+          echo "{}" > package.json
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Release -- Generate Changelog
+        if: contains(github.ref, '/tags/v')
+        uses: {% endraw %}{{ cookiecutter._GITHUB_GENERATE_CHANGELOG_ACTION }}{% raw %}
+        id: Changelog
+        env:
+          REPO: ${{ github.repository }}
+
+      - name: Release -- Create Github Release
+        if: contains(github.ref, '/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.BRANCH_OR_TAG }}
+          release_name: Release ${{ env.BRANCH_OR_TAG }}
+          body: |
+            ${{ steps.Changelog.outputs.changelog }}
+          draft: true
+          prerelease: false
+
+      - name: Release -- Report Job Status (Success)
+        if: contains(github.ref, '/tags/v')
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created:\nhttps://github.com/${USERNAME}/${PROJECT_NAME}/releases"
+
+      - name: Release -- Report Job Status (Failure)
+        if: failure() && contains(github.ref, '/tags/v')
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: automated release generation failed!"
 
   documentation_test:
 
@@ -26,14 +80,16 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Documentation Test -- Documentation Validation
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.11
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_MARKDOWN_LINK_CHECK }}{% raw %}
         with:
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
 
       - name: Documentation Test -- Report Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation test was successful!"
+
       - name: Documentation Test -- Report Failure
         if: failure()
         run: |
@@ -51,6 +107,7 @@ jobs:
 
       - name: Molecule Lint -- Checkout Repository
         uses: actions/checkout@v1
+
       - name: Molecule Lint -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -61,6 +118,7 @@ jobs:
           source ./.github/scripts/setup.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
       - name: Molecule Lint -- Install Requirements
         run: |
           pip install poetry
@@ -71,8 +129,10 @@ jobs:
           poetry run molecule lint
 
       - name: Molecule Lint -- Report Job Status (Success)
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting was successful!"
+
       - name: Molecule Lint -- Report Job Status (Failure)
         if: failure()
         run: |
@@ -87,9 +147,9 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Molecule Test -- Checkout Repository
         uses: actions/checkout@v1
+
       - name: Molecule Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -100,6 +160,7 @@ jobs:
           source ./.github/scripts/setup.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
       - name: Molecule Test -- Install Requirements
         run: |
           pip install poetry
@@ -110,61 +171,14 @@ jobs:
           poetry run molecule test -s docker1
 
       - name: Molecule Test -- Report Job Status (Success)
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule test was successful!"
+
       - name: Molecule Test -- Report Job Status (Failure)
         if: failure()
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule test has failed!"
-
-  release:
-    needs: [molecule_test, molecule_lint, documentation_test, security_test]
-
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Release -- Checkout Repository
-        if: contains(github.ref, '/tags/v')
-        uses: actions/checkout@v1
-
-      - name: Release -- Setup Environment
-        if: contains(github.ref, '/tags/v')
-        run: |
-          source ./.github/scripts/setup.sh
-          NEWTAG=${BRANCH_OR_TAG}
-          echo "NEWTAG=${NEWTAG}" >> $GITHUB_ENV
-          echo "{}" > package.json
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Release -- Generate Changelog
-        if: contains(github.ref, '/tags/v')
-        uses: scottbrenner/generate-changelog-action@1.0.3
-        id: Changelog
-        env:
-          REPO: ${{ github.repository }}
-      - name: Release -- Create Github Release
-        if: contains(github.ref, '/tags/v')
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ env.NEWTAG }}
-          release_name: Release ${{ env.NEWTAG }}
-          body: |
-            ${{ steps.Changelog.outputs.changelog }}
-          draft: true
-          prerelease: false
-
-      - name: Release -- Report Job Status (Success)
-        if: contains(github.ref, '/tags/v')
-        run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created:\nhttps://github.com/${USERNAME}/${PROJECT_NAME}/releases"
-      - name: Release -- Report Job Status (Failure)
-        if: failure() && contains(github.ref, '/tags/v')
-        run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: automated release generation failed!"
 
   security_test:
 
@@ -175,9 +189,9 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Security Test -- Checkout Repository
         uses: actions/checkout@v1
+
       - name: Security Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -190,7 +204,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Security Test -- Run Gitleaks
-        uses: zricethezav/gitleaks-action@master
+        uses: {% endraw %}{{ cookiecutter._GITHUB_GITLEAKS_ACTION }}{% raw %}
 
       - name: Security Test -- Check Dependencies
         run: |
@@ -200,12 +214,61 @@ jobs:
           safety check
 
       - name: Security Test -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks were successful!"
+
       - name: Security Test -- Report Job Status on Failure
         if: failure()
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
+
+  start_notification:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start -- Checkout Repository
+        uses: actions/checkout@v1
+
+      - name: Start -- Setup Environment
+        run: |
+          source ./.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Start -- Report Job Status on Success
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow has started!"
+
+      - name: Start -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
+
+  success_notification:
+    needs: [create_release]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Success -- Checkout Repository
+        uses: actions/checkout@v1
+
+      - name: Success -- Setup Environment
+        run: |
+          source .github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Success -- Report Job Status on Success
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: all checks were successful!"
+
+      - name: Success -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
 
   workflow_lint:
 
@@ -216,9 +279,9 @@ jobs:
         python-version: [3.7]
 
     steps:
-
       - name: Workflow Lint -- Checkout Repository
         uses: actions/checkout@v1
+
       - name: Workflow Lint -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -229,6 +292,7 @@ jobs:
           source ./.github/scripts/setup.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
       - name: Workflow Lint -- Install Requirements
         run: |
           pip install yamllint
@@ -236,10 +300,13 @@ jobs:
       - name: Workflow Lint -- Run Linter
         run: |
           yamllint .github/workflows
+          shellcheck .github/scripts/*
 
       - name: Workflow Lint -- Report Job Status (Success)
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow linting was successful!"
+
       - name: Workflow Lint -- Report Job Status (Failure)
         if: failure()
         run: |
