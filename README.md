@@ -22,7 +22,7 @@ Warning: [Ansible is moving towards Python 3.8 soon](https://github.com/ansible/
 ## Quick Start Guide
 
 - `pip install cookiecutter poetry`
-- `cookiecutter https://github.com/niall-byrne/ansible-workbench.git --checkout v0.1.1`
+- `cookiecutter https://github.com/niall-byrne/ansible-workbench.git --checkout v0.1.2`
 
 Give your project a name, and populate the other required template inputs.
 
