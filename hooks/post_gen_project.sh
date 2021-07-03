@@ -20,7 +20,7 @@ initialize_poetry() {
 
 update_template_values() {
   # Compatible with Linux and BSD sed
-  sed -i.bak 's/ansible-workbench\//https:\/\/github.com\/Shared-Vision-Solutions\/ansible-workbench.git/' .cookiecutter/cookiecutter.json
+  sed -i.bak 's/ansible-workbench\//https:\/\/github.com\/niall-byrne\/ansible-workbench.git/' .cookiecutter/cookiecutter.json
   rm .cookiecutter/cookiecutter.json.bak
 }
 

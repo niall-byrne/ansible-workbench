@@ -21,7 +21,7 @@ main() {
       -c .cookiecutter/cookiecutter.json                                  \
       -b "update-template"                                                \
       -u "$2"                                                             \
-      -f https://github.com/shared-vision-solutions/ansible-workbench.git \
+      -f https://github.com/niall-byrne/ansible-workbench.git \
       -e "defaults"                                                       \
       -e "handlers"                                                       \
       -e "meta"                                                           \

@@ -5,10 +5,10 @@ Ansible Role Development Environment.
 (Please see the [cookiecutter documentation](https://cookiecutter.readthedocs.io/) for instructions on how to use this project template.)
 
 ##### Master Branch:
-[![ansible-workbench-self-test](https://github.com/shared-vision-solutions/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=master)](https://github.com/shared-vision-solutions/ansible-workbench/actions)
+[![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=master)](https://github.com/niall-byrne/ansible-workbench/actions)
 
 ##### Production Branch:
-[![ansible-workbench-self-test](https://github.com/shared-vision-solutions/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=production)](https://github.com/shared-vision-solutions/ansible-workbench/actions)
+[![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=production)](https://github.com/niall-byrne/ansible-workbench/actions)
 
 ## About
 
@@ -22,7 +22,7 @@ Warning: [Ansible is moving towards Python 3.8 soon](https://github.com/ansible/
 ## Quick Start Guide
 
 - `pip install cookiecutter poetry`
-- `cookiecutter https://github.com/shared-vision-solutions/ansible-workbench.git --checkout v0.1.1`
+- `cookiecutter https://github.com/niall-byrne/ansible-workbench.git --checkout v0.1.1`
 
 Give your project a name, and populate the other required template inputs.
 

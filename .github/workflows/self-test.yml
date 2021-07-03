@@ -14,7 +14,7 @@ on:
 
 env:
   PROJECT_NAME: "ansible-workbench"
-  USERNAME: "shared-vision-solutions"
+  USERNAME: "niall-byrne"
   TEMPLATED_NAME: "flower-generator"
 
 jobs:
