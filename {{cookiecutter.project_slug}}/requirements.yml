@@ -1,4 +1,4 @@
 ---
 roles:
   - name: osx_provisioner.homebrew_retry
-    version: v0.2.0
+    version: v0.3.0
