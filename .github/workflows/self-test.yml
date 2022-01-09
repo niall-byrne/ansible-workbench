@@ -16,6 +16,7 @@ env:
   PROJECT_NAME: "ansible-workbench"
   USERNAME: "niall-byrne"
   TEMPLATED_NAME: "flower-generator"
+  VERBOSE_NOTIFICATIONS: 0
 
 jobs:
 
@@ -32,6 +33,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: 'template'
+
       - name: Documentation Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -61,6 +63,7 @@ jobs:
           max-depth: -1
 
       - name: Documentation Test -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
 
@@ -101,6 +104,7 @@ jobs:
           poetry run molecule lint
 
       - name: Molecule Lint -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting checks succeeded!"
 
@@ -175,6 +179,7 @@ jobs:
           force: true
 
       - name: Push Test -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
 
@@ -183,7 +188,7 @@ jobs:
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: push failed to trigger!"
 
-  releases:
+  create_release:
     needs: [push_repository_test]
 
     runs-on: ubuntu-latest
@@ -250,6 +255,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: 'template'
+
       - name: Security Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
         with:
@@ -274,6 +280,7 @@ jobs:
           cd ..
 
       - name: Security Test -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
 
@@ -319,6 +326,7 @@ jobs:
           shellcheck ${TEMPLATED_NAME}/.github/scripts/*.sh
 
       - name: Shellcheck -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: shellcheck checks succeeded!"
 
@@ -326,6 +334,57 @@ jobs:
         if: failure()
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: shellcheck checks failed!"
+
+  start_notification:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start -- Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          path: 'template'
+
+      - name: Start -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Start -- Report Job Status on Success
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow has started!"
+
+      - name: Start -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
+
+  success_notification:
+    needs: [create_release]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Success -- Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          path: 'template'
+
+      - name: Success -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Success -- Report Job Status on Success
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: all checks were successful!"
+
+      - name: Success -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
 
   workflow_lint_test:
 
@@ -362,6 +421,7 @@ jobs:
           yamllint -f standard ./${TEMPLATED_NAME}/.github/workflows/*.yml -c ./${TEMPLATED_NAME}/.yamllint
 
       - name: Workflow Lint -- Report Job Status on Success
+        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow linting checks succeeded!"
 
