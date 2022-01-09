@@ -41,7 +41,7 @@ jobs:
 
       - name: Documentation Test -- Setup Environment / Render Template
         run: |
-          source ./template/.github/scripts/setup.sh
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -93,7 +93,7 @@ jobs:
 
       - name: Molecule Lint -- Setup Environment / Render Template
         run: |
-          source ./template/.github/scripts/setup.sh
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -136,7 +136,7 @@ jobs:
 
       - name: Push Test -- Setup Environment / Render Template
         run: |
-          source ./template/.github/scripts/setup.sh
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh "GitHub Action" "action@github.com"
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -203,7 +203,7 @@ jobs:
       - name: Create Release -- Setup Environment
         if: contains(github.ref, '/tags/v')
         run: |
-          source .github/scripts/setup.sh
+          source ./{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           echo "{}" > package.json
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -263,7 +263,7 @@ jobs:
 
       - name: Security Test -- Setup Environment / Render Template
         run: |
-          source ./template/.github/scripts/setup.sh
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -310,7 +310,7 @@ jobs:
 
       - name: Shellcheck -- Setup Environment / Render Template
         run: |
-          source ./template/.github/scripts/setup.sh
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
@@ -407,7 +407,7 @@ jobs:
 
       - name: Workflow Lint -- Setup Environment / Render Template
         run: |
-          source ./template/.github/scripts/setup.sh
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
