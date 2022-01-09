@@ -15,9 +15,7 @@ Ansible Role Development Environment.
 This template generates a development environment for Ansible Roles with a functional CI/CD template for both Travis CI and Github.
 
 ## Requirements
-You'll need [Python](https://www.python.org/) 3.6.1 or later to use this template.
-
-Warning: [Ansible is moving towards Python 3.8 soon](https://github.com/ansible/ansible/issues/72668).
+You'll need [Python](https://www.python.org/) 3.8 or later to use this template.
 
 ## Quick Start Guide
 
