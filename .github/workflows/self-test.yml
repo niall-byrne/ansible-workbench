@@ -191,7 +191,9 @@ jobs:
     steps:
       - name: Create Release -- Checkout Repository
         if: contains(github.ref, '/tags/v')
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Create Release -- Setup Environment
         if: contains(github.ref, '/tags/v')

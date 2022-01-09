@@ -24,7 +24,9 @@ jobs:
     steps:
       - name: Release -- Checkout Repository
         if: contains(github.ref, '/tags/v')
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Release -- Setup Environment
         if: contains(github.ref, '/tags/v')
@@ -71,7 +73,7 @@ jobs:
     steps:
 
       - name: Documentation Test -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Documentation Test -- Setup Environment
         run: |
@@ -106,7 +108,7 @@ jobs:
     steps:
 
       - name: Molecule Lint -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Molecule Lint -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -148,7 +150,7 @@ jobs:
 
     steps:
       - name: Molecule Test -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Molecule Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -190,7 +192,9 @@ jobs:
 
     steps:
       - name: Security Test -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Security Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
@@ -229,7 +233,7 @@ jobs:
 
     steps:
       - name: Start -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Start -- Setup Environment
         run: |
@@ -253,7 +257,7 @@ jobs:
 
     steps:
       - name: Success -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Success -- Setup Environment
         run: |
@@ -280,7 +284,7 @@ jobs:
 
     steps:
       - name: Workflow Lint -- Checkout Repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Workflow Lint -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v1
