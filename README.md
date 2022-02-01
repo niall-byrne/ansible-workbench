@@ -20,7 +20,7 @@ You'll need [Python](https://www.python.org/) 3.8 or later to use this template.
 ## Quick Start Guide
 
 - `pip install cookiecutter poetry`
-- `cookiecutter https://github.com/niall-byrne/ansible-workbench.git --checkout v0.1.4`
+- `cookiecutter https://github.com/niall-byrne/ansible-workbench.git --checkout v0.1.5`
 
 Give your project a name, and populate the other required template inputs.
 
