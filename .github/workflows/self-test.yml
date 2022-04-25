@@ -47,8 +47,9 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Documentation Test -- Check Markdown Links For Readme
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.12
+        uses: gaurav-nelson/github-action-markdown-link-check@1.0.13
         with:
+          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/markdown.link.check.json'
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
           folder-path: 'template, template/.github/workflows'
