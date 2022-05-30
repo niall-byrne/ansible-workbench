@@ -32,18 +32,15 @@ jobs:
         if: contains(github.ref, '/tags/v')
         run: |
           source ./.github/scripts/setup.sh
-          echo "{}" > package.json
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Release -- Generate Changelog
+      - name: Create Release -- Generate Changelog
         if: contains(github.ref, '/tags/v')
-        uses: {% endraw %}{{ cookiecutter._GITHUB_GENERATE_CHANGELOG_ACTION }}{% raw %}
-        id: Changelog
-        env:
-          REPO: ${{ github.repository }}
+        run:
+          source ./.github/scripts/changelog.sh
 
-      - name: Release -- Create Github Release
+      - name: Create Release -- Create Github Release
         if: contains(github.ref, '/tags/v')
         uses: actions/create-release@v1
         env:
@@ -52,11 +49,11 @@ jobs:
           tag_name: ${{ env.BRANCH_OR_TAG }}
           release_name: Release ${{ env.BRANCH_OR_TAG }}
           body: |
-            ${{ steps.Changelog.outputs.changelog }}
+            ${{ env.CHANGE_LOG_CONTENT }}
           draft: true
           prerelease: false
 
-      - name: Release -- Report Job Status (Success)
+      - name: Create Release -- Report Job Status (Success)
         if: contains(github.ref, '/tags/v')
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created:\nhttps://github.com/${USERNAME}/${PROJECT_NAME}/releases"

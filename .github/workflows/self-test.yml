@@ -211,10 +211,8 @@ jobs:
 
       - name: Create Release -- Generate Changelog
         if: contains(github.ref, '/tags/v')
-        uses: scottbrenner/generate-changelog-action@v1.3.3
-        id: Changelog
-        env:
-          REPO: ${{ github.repository }}
+        run:
+          source ./{{cookiecutter.project_slug}}/.github/scripts/changelog.sh
 
       - name: Create Release -- Create Github Release
         if: contains(github.ref, '/tags/v')
@@ -225,9 +223,8 @@ jobs:
           tag_name: ${{ env.BRANCH_OR_TAG }}
           release_name: Release ${{ env.BRANCH_OR_TAG }}
           body: |
-            ${{ steps.Changelog.outputs.changelog }}
+            ${{ env.CHANGE_LOG_CONTENT }}
             ## Deployment Checklist
-            - [ ] Ensure correct version is notated
             - [ ] Ensure documentation is accurate
             - [ ] Ensure git commits are properly formatted
           draft: true
