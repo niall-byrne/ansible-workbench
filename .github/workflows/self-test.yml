@@ -274,7 +274,7 @@ jobs:
           pip install --upgrade pip safety
           cd "${TEMPLATED_NAME}"
             poetry install
-            safety check
+            poetry export -f requirements.txt --without-hashes | safety check --stdin
           cd ..
 
       - name: Security Test -- Report Job Status on Success
