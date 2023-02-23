@@ -5,7 +5,7 @@ description = "{{cookiecutter.description}}"
 authors = ["{{cookiecutter.author}} <{{cookiecutter.email}}>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8.0,<4.0"
+python = ">={{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | first }}.0,<4.0"
 
 [tool.poetry.dev-dependencies]
 ansible = "^5.2.0"

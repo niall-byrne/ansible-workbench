@@ -16,6 +16,18 @@ env:
 {% raw %}
 jobs:
 
+  _create_python_versions:
+
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.create_matrix.outputs.python-versions }}
+
+    steps:
+      - name: Create Python Versions -- Set Configured Python Versions as Output
+        id: create_matrix
+        run: |
+          echo 'python-versions={% endraw %}{{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }}{% raw %}' >> $GITHUB_OUTPUT
+
   create_release:
     needs: [molecule_test, molecule_lint, documentation_test, security_test, start_notification]
 
@@ -96,12 +108,13 @@ jobs:
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation test has failed!"
 
   molecule_lint:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
 
@@ -139,12 +152,13 @@ jobs:
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting has failed!"
 
   molecule_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Molecule Test -- Checkout Repository
@@ -181,12 +195,13 @@ jobs:
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule test has failed!"
 
   security_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Security Test -- Checkout Repository

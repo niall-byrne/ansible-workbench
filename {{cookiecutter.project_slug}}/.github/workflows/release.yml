@@ -17,17 +17,15 @@ on:
 
 env:
   PROJECT_NAME: "{{ cookiecutter.project_slug }}"
+  PYTHON_VERSIONS: '{{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }}'
   USERNAME: "{{ cookiecutter.github_handle }}"
 
 {% raw %}
 jobs:
+
   publish_to_galaxy:
 
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.8]
 
     steps:
 
@@ -44,10 +42,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Publish to Galaxy -- Set up Python ${{ matrix.python-version }}
+      - name: Publish to Galaxy -- Set up Python ${{ toJSON(env.PYTHON_VERSIONS)[0] }}
         uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ toJSON(env.PYTHON_VERSIONS)[0] }}
 
       - name: Publish to Galaxy -- Setup Environment
         run: |

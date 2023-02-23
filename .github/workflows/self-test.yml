@@ -13,6 +13,7 @@ on:
   workflow_dispatch:
 
 env:
+  CONFIGURE_PYTHON_VERSIONS: "[3.9]"
   PROJECT_NAME: "ansible-workbench"
   USERNAME: "niall-byrne"
   TEMPLATED_NAME: "flower-generator"
@@ -20,13 +21,26 @@ env:
 
 jobs:
 
+  _create_python_versions:
+
+    runs-on: ubuntu-latest
+    outputs:
+      python-versions: ${{ steps.create_matrix.outputs.python-versions }}
+
+    steps:
+      - name: Create Python Versions -- Set Configured Python Versions as Output
+        id: create_matrix
+        run: |
+          echo "python-versions=${CONFIGURE_PYTHON_VERSIONS}" >> $GITHUB_OUTPUT
+
   documentation_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Documentation Test -- Checkout Repository
@@ -74,12 +88,13 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation checks failed!"
 
   molecule_lint_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Molecule Lint -- Checkout Repository
@@ -115,13 +130,13 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting checks failed!"
 
   push_repository_test:
-    needs: [documentation_test, molecule_lint_test, security_test, shellcheck_test, workflow_lint_test]
+    needs: [_create_python_versions, documentation_test, molecule_lint_test, security_test, shellcheck_test, workflow_lint_test]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Push Test -- Checkout Repository
@@ -241,12 +256,13 @@ jobs:
           ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: automated release creation has failed!"
 
   security_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Security Test -- Checkout Repository
@@ -288,12 +304,13 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
 
   shellcheck_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Shellcheck -- Checkout Repository
@@ -385,12 +402,13 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
 
   workflow_lint_test:
+    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Workflow Lint -- Checkout Repository
