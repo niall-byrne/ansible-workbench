@@ -31,19 +31,19 @@ jobs:
 
       - name: Publish to Galaxy -- Code Checkout (workflow dispatch)
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/checkout@v2
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.TAG  }}
 
       - name: Publish to Galaxy -- Code Checkout (published release)
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/checkout@v2
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
 
       - name: Publish to Galaxy -- Set up Python ${{ toJSON(env.PYTHON_VERSIONS)[0] }}
-        uses: actions/setup-python@v1
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ toJSON(env.PYTHON_VERSIONS)[0] }}
 

@@ -6,6 +6,15 @@
 
 # Requires: https://pypi.org/project/cookiecutter-project-upgrader/
 
+# 1:      The path to the role folder you'll be upgrading.
+# 2:      The tag or branch of this repository you'll be using to perform the upgrade.
+
+# Development only script.
+
+set -eo pipefail
+
+ANSIBLE_WORKBENCH_TEMPLATE_URL="https://github.com/niall-byrne/ansible-workbench.git"
+
 error() {
   echo "USAGE: ./update.sh [ROLE FOLDER] [TEMPLATE TAG or BRANCH]"
   exit 127
@@ -21,7 +30,7 @@ main() {
       -c .cookiecutter/cookiecutter.json                                  \
       -b "update-template"                                                \
       -u "$2"                                                             \
-      -f https://github.com/niall-byrne/ansible-workbench.git \
+      -f "${ANSIBLE_WORKBENCH_TEMPLATE_URL}"                              \
       -e "defaults"                                                       \
       -e "handlers"                                                       \
       -e "meta"                                                           \
@@ -29,7 +38,6 @@ main() {
       -e "tasks"                                                          \
       -e "tests"                                                          \
       -e "vars"                                                           \
-      -e ".ansible-lint"                                                  \
       -e ".gitignore"                                                     \
       -e "pyproject.toml"                                                 \
       -e "requirements.yml"                                               \

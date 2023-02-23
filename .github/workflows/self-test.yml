@@ -13,7 +13,8 @@ on:
   workflow_dispatch:
 
 env:
-  CONFIGURE_PYTHON_VERSIONS: "[3.9]"
+  ANSIBLE_WORKBENCH_BRANCH_NAME_BASE: "master"
+  ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT: "dev"
   PROJECT_NAME: "ansible-workbench"
   USERNAME: "niall-byrne"
   TEMPLATED_NAME: "flower-generator"
@@ -21,35 +22,96 @@ env:
 
 jobs:
 
-  _create_python_versions:
+  _create_configuration:
 
     runs-on: ubuntu-latest
     outputs:
-      python-versions: ${{ steps.create_matrix.outputs.python-versions }}
+      configuration: ${{ steps.read_configuration.outputs.configuration }}
 
     steps:
-      - name: Create Python Versions -- Set Configured Python Versions as Output
-        id: create_matrix
-        run: |
-          echo "python-versions=${CONFIGURE_PYTHON_VERSIONS}" >> $GITHUB_OUTPUT
+      - name: Create Configuration -- Checkout Repository
+        uses: actions/checkout@v3
 
-  documentation_test:
-    needs: [_create_python_versions]
+      - name: Create Configuration -- Set Cookiecutter Configuration as Output
+        id: read_configuration
+        run: |
+          {
+            echo "configuration<<EOF"
+              cat cookiecutter.json
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+  _start_notification:
 
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Start -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Start -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Start -- Report Job Status on Success
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow has started!"
+
+      - name: Start -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
+
+  _success_notification:
+    needs: [create_release]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Success -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Success -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Success -- Report Job Status on Success
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: all checks were successful!"
+
+      - name: Success -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
+
+
+  documentation_test:
+    needs: [_create_configuration]
+
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
       - name: Documentation Test -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: 'template'
 
       - name: Documentation Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -60,8 +122,8 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Documentation Test -- Check Markdown Links For Readme
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.13
+      - name: Documentation Test -- Check Markdown Links For Template
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           config-file: 'template/{{cookiecutter.project_slug}}/.github/config/markdown.link.check.json'
           use-quiet-mode: 'no'
@@ -70,7 +132,7 @@ jobs:
           max-depth: 1
 
       - name: Documentation Test -- Check Markdown Links For Rendered Template
-        uses: gaurav-nelson/github-action-markdown-link-check@1.0.12
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
@@ -78,7 +140,7 @@ jobs:
           max-depth: -1
 
       - name: Documentation Test -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
 
@@ -88,65 +150,67 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation checks failed!"
 
   molecule_lint_test:
-    needs: [_create_python_versions]
+    needs: [_create_configuration]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
-      - name: Molecule Lint -- Checkout Repository
-        uses: actions/checkout@v2
+      - name: Molecule Lint Test -- Checkout Repository
+        uses: actions/checkout@v3
         with:
           path: 'template'
 
-      - name: Molecule Lint -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+      - name: Molecule Lint Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Molecule Lint -- Setup Environment / Render Template
+      - name: Molecule Lint Test -- Setup Environment / Render Template
         run: |
           source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Molecule Lint -- Lint Rendered Template With Default Scenario
+      - name: Molecule Lint Test -- Lint Rendered Template With Default Scenario
         run: |
           cd ${TEMPLATED_NAME}
           poetry run molecule lint
 
-      - name: Molecule Lint -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+      - name: Molecule Lint Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting checks succeeded!"
 
-      - name: Molecule Lint -- Report Job Status on Failure
+      - name: Molecule Lint Test -- Report Job Status on Failure
         if: failure()
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting checks failed!"
 
   push_repository_test:
-    needs: [_create_python_versions, documentation_test, molecule_lint_test, security_test, shellcheck_test, workflow_lint_test]
+    needs: [_create_configuration, _start_notification, documentation_test, molecule_lint_test, security_test, shellcheck_test, yaml_lint_test]
 
     runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
       - name: Push Test -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: 'template'
           persist-credentials: false
 
       - name: Push Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -195,7 +259,7 @@ jobs:
           force: true
 
       - name: Push Test -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
 
@@ -212,7 +276,7 @@ jobs:
     steps:
       - name: Create Release -- Checkout Repository
         if: contains(github.ref, '/tags/v')
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -256,22 +320,22 @@ jobs:
           ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: automated release creation has failed!"
 
   security_test:
-    needs: [_create_python_versions]
+    needs: [_create_configuration]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
       - name: Security Test -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: 'template'
 
       - name: Security Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -294,7 +358,7 @@ jobs:
           cd ..
 
       - name: Security Test -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
 
@@ -304,22 +368,24 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
 
   shellcheck_test:
-    needs: [_create_python_versions]
+    needs: [_create_configuration]
 
     runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
       - name: Shellcheck -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: 'template'
 
       - name: Shellcheck -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -341,7 +407,7 @@ jobs:
           shellcheck ${TEMPLATED_NAME}/.github/scripts/*.sh
 
       - name: Shellcheck -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: shellcheck checks succeeded!"
 
@@ -350,98 +416,55 @@ jobs:
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: shellcheck checks failed!"
 
-  start_notification:
+  yaml_lint_test:
+    needs: [_create_configuration]
 
     runs-on: ubuntu-latest
-
-    steps:
-      - name: Start -- Checkout Repository
-        uses: actions/checkout@v2
-        with:
-          path: 'template'
-
-      - name: Start -- Setup Environment
-        run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Start -- Report Job Status on Success
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow has started!"
-
-      - name: Start -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
-
-  success_notification:
-    needs: [create_release]
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Success -- Checkout Repository
-        uses: actions/checkout@v2
-        with:
-          path: 'template'
-
-      - name: Success -- Setup Environment
-        run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Success -- Report Job Status on Success
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: all checks were successful!"
-
-      - name: Success -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
-
-  workflow_lint_test:
-    needs: [_create_python_versions]
-
-    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
-      - name: Workflow Lint -- Checkout Repository
-        uses: actions/checkout@v2
+      - name: Yaml Lint Test -- Checkout Repository
+        uses: actions/checkout@v3
         with:
           path: 'template'
 
-      - name: Workflow Lint -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+      - name: Yaml Lint Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Workflow Lint -- Setup Environment / Render Template
+      - name: Yaml Lint Test -- Setup Environment / Render Template
         run: |
           source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Workflow Lint -- Lint Workflows
-        run: |
-          yamllint -f standard ./template/.github/workflows -c ./${TEMPLATED_NAME}/.yamllint
+      - name: Yaml Lint Test -- Lint Template GitHub Workflows
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          format: standard
+          file_or_dir: ./template/.github/workflows
+          config_file: ./${{ env.TEMPLATED_NAME }}/.yamllint.yml
 
-      - name: Workflow Lint -- Lint Rendered Template Workflows
-        run: |
-          yamllint -f standard ./${TEMPLATED_NAME}/.github/workflows/*.yml -c ./${TEMPLATED_NAME}/.yamllint
+      - name: Yaml Lint Test -- Lint Rendered GitHub Workflows
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          format: standard
+          file_or_dir: ./${{ env.TEMPLATED_NAME }}/.github/workflows/*.yml -c ./${{ env.TEMPLATED_NAME }}/.yamllint.yml
+          config_file: ./${{ env.TEMPLATED_NAME }}/.yamllint.yml
 
-      - name: Workflow Lint -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+      - name: Yaml Lint Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow linting checks succeeded!"
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: YAML linting checks succeeded!"
 
-      - name: Workflow Lint -- Report Job Status on Failure
+      - name: Yaml Lint Test -- Report Job Status on Failure
         if: failure()
         run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: workflow linting checks failed!"
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: YAML linting checks failed!"

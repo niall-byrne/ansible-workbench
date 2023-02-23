@@ -28,15 +28,62 @@ jobs:
         run: |
           echo 'python-versions={% endraw %}{{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }}{% raw %}' >> $GITHUB_OUTPUT
 
+  _start_notification:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start -- Checkout Repository
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
+
+      - name: Start -- Setup Environment
+        run: |
+          source ./.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Start -- Report Job Status on Success
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow has started!"
+
+      - name: Start -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
+
+  _success_notification:
+    needs: [create_release]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Success -- Checkout Repository
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
+
+      - name: Success -- Setup Environment
+        run: |
+          source .github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Success -- Report Job Status on Success
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: all checks were successful!"
+
+      - name: Success -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
+
   create_release:
-    needs: [molecule_test, molecule_lint, documentation_test, security_test, start_notification]
+    needs: [_create_python_versions, _start_notification, documentation_test, molecule_lint_test, molecule_test, security_test, yaml_lint_test]
 
     runs-on: ubuntu-latest
 
     steps:
       - name: Release -- Checkout Repository
         if: contains(github.ref, '/tags/v')
-        uses: actions/checkout@v2
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
 
@@ -82,7 +129,7 @@ jobs:
     steps:
 
       - name: Documentation Test -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
 
       - name: Documentation Test -- Setup Environment
         run: |
@@ -98,7 +145,7 @@ jobs:
           use-verbose-mode: 'yes'
 
       - name: Documentation Test -- Report Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation test was successful!"
 
@@ -107,7 +154,7 @@ jobs:
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation test has failed!"
 
-  molecule_lint:
+  molecule_lint_test:
     needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
@@ -118,35 +165,35 @@ jobs:
 
     steps:
 
-      - name: Molecule Lint -- Checkout Repository
-        uses: actions/checkout@v2
+      - name: Molecule Lint Test -- Checkout Repository
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
 
-      - name: Molecule Lint -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+      - name: Molecule Lint Test -- Set up Python ${{ matrix.python-version }}
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Molecule Lint -- Setup Environment
+      - name: Molecule Lint Test -- Setup Environment
         run: |
           source ./.github/scripts/setup.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Molecule Lint -- Install Requirements
+      - name: Molecule Lint Test -- Install Requirements
         run: |
           pip install poetry
           poetry install
 
-      - name: Molecule Lint -- Run Linter
+      - name: Molecule Lint Test -- Run Linter
         run: |
           poetry run molecule lint
 
-      - name: Molecule Lint -- Report Job Status (Success)
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+      - name: Molecule Lint Test -- Report Job Status (Success)
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting was successful!"
 
-      - name: Molecule Lint -- Report Job Status (Failure)
+      - name: Molecule Lint Test -- Report Job Status (Failure)
         if: failure()
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting has failed!"
@@ -162,10 +209,10 @@ jobs:
 
     steps:
       - name: Molecule Test -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
 
       - name: Molecule Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -185,7 +232,7 @@ jobs:
           poetry run molecule test -s docker1
 
       - name: Molecule Test -- Report Job Status (Success)
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule test was successful!"
 
@@ -205,12 +252,12 @@ jobs:
 
     steps:
       - name: Security Test -- Checkout Repository
-        uses: actions/checkout@v2
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
 
       - name: Security Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -221,7 +268,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Security Test -- Run Gitleaks
-        uses: {% endraw %}{{ cookiecutter._GITHUB_GITLEAKS_ACTION }}{% raw %}
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_GITLEAKS }}{% raw %}
 
       - name: Security Test -- Check Dependencies
         run: |
@@ -231,7 +278,7 @@ jobs:
           poetry export -f requirements.txt --without-hashes | safety check --stdin
 
       - name: Security Test -- Report Job Status on Success
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks were successful!"
 
@@ -240,91 +287,33 @@ jobs:
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
 
-  start_notification:
+  yaml_lint_test:
 
     runs-on: ubuntu-latest
 
     steps:
-      - name: Start -- Checkout Repository
-        uses: actions/checkout@v2
+      - name: Yaml Lint Test -- Checkout Repository
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
 
-      - name: Start -- Setup Environment
+      - name: Yaml Lint Test -- Setup Environment
         run: |
           source ./.github/scripts/setup.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Start -- Report Job Status on Success
-        run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow has started!"
-
-      - name: Start -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
-
-  success_notification:
-    needs: [create_release]
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Success -- Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Success -- Setup Environment
-        run: |
-          source .github/scripts/setup.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Success -- Report Job Status on Success
-        run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: all checks were successful!"
-
-      - name: Success -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
-
-  workflow_lint:
-
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: [3.8]
-
-    steps:
-      - name: Workflow Lint -- Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Workflow Lint -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+      - name: Yaml Lint Test -- Lint Rendered GitHub Workflows
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_YAMLLINT }}{% raw %}
         with:
-          python-version: ${{ matrix.python-version }}
+          format: standard
+          file_or_dir: .github/workflows/
+          config_file: .yamllint.yml
 
-      - name: Workflow Lint -- Setup Environment
-        run: |
-          source ./.github/scripts/setup.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Workflow Lint -- Install Requirements
-        run: |
-          pip install yamllint
-
-      - name: Workflow Lint -- Run Linter
-        run: |
-          yamllint .github/workflows
-          shellcheck .github/scripts/*
-
-      - name: Workflow Lint -- Report Job Status (Success)
-        if: ${{ env.VERBOSE_NOTIFICATIONS  == '1' }}
+      - name: Yaml Lint Test -- Report Job Status (Success)
+        if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: workflow linting was successful!"
 
-      - name: Workflow Lint -- Report Job Status (Failure)
+      - name: Yaml Lint Test -- Report Job Status (Failure)
         if: failure()
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: workflow linting has failed!"
