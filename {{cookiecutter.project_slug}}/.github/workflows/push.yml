@@ -306,11 +306,17 @@ jobs:
       - name: Security Test -- Setup Environment
         run: |
           source ./.github/scripts/setup.sh
+          source ./.github/scripts/pushed_commit_range.sh
         env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Security Test -- Run Gitleaks
-        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_GITLEAKS }}{% raw %}
+      - name: Security Test -- Run Trufflehog
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_TRUFFLEHOG }}{% raw %}
+        with:
+          path: .
+          base: ${{ env.PUSHED_COMMIT_RANGE }}
+          head: ${{ env.BRANCH_OR_TAG }}
 
       - name: Security Test -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'

@@ -373,26 +373,31 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          path: 'template'
 
       - name: Security Test Repo -- Setup Environment
         run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+          source ./{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+          source ./{{cookiecutter.project_slug}}/.github/scripts/pushed_commit_range.sh
         env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Security Test Repo -- Run Gitleaks
-        uses: zricethezav/gitleaks-action@v1.6.0
+      - name: Security Test -- Run Trufflehog
+        uses: trufflesecurity/trufflehog@v3.27.1
+        with:
+          path: .
+          base: ${{ env.PUSHED_COMMIT_RANGE }}
+          head: ${{ env.BRANCH_OR_TAG }}
 
       - name: Security Test Repo -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
+          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
 
       - name: Security Test Repo -- Report Job Status on Failure
         if: failure()
         run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
+          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
 
   shellcheck_test:
     needs: [_create_configuration]

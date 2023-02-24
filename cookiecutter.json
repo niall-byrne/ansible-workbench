@@ -13,7 +13,6 @@
     "_GITHUB_CI_PYTHON_VERSIONS": ["3.9"],
     "_GITHUB_ACTION_CACHE": "actions/cache@v3",
     "_GITHUB_ACTION_CHECKOUT": "actions/checkout@v3",
-    "_GITHUB_ACTION_GITLEAKS": "zricethezav/gitleaks-action@v1.6.0",
     "_GITHUB_ACTION_MARKDOWN_LINK_CHECK": "gaurav-nelson/github-action-markdown-link-check@v1",
     "_GITHUB_ACTION_PYTHON": "actions/setup-python@v4",
     "_GITHUB_ACTION_SCRIPT": "actions/github-script@v6",
