@@ -6,10 +6,12 @@ EMAIL=${2:-"somedude@coolstartup.com"}
 set -eo pipefail
 
 main() {
-  pip install cookiecutter poetry
+
   git config --global user.name "${NAME}"
   git config --global user.email "${EMAIL}"
+
   echo -e '\n\n\n\n\n\n\n\n\n' | cookiecutter template/
+
 }
 
 main

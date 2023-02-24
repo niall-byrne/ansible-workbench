@@ -167,36 +167,62 @@ jobs:
 
       - name: Molecule Lint Test -- Checkout Repository
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
+        with:
+          path: "role"
+
+      - name: Molecule Lint Test -- Setup Environment
+        run: |
+          source ./role/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Molecule Lint Test -- Set up Python ${{ matrix.python-version }}
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Molecule Lint Test -- Setup Environment
+      - name: Molecule Lint Test -- Install Poetry
         run: |
-          source ./.github/scripts/setup.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          source ./role/.github/scripts/poetry.sh "install-poetry"
+
+      - name: Molecule Lint Test -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+          source ./role/.github/scripts/ansible_cache.sh  \
+            "$(pwd)/ansible_cache"                        \
+            ~/.cache
+
+      - name: Molecule Lint Test -- Mount Ansible Cache
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CACHE }}{% raw %}
+        with:
+          key: ansible-${{ hashFiles('./role/requirements.yml') }}-${{ env.CACHE_TTL }}
+          path: ansible_cache
+
+      - name: Molecule Lint Test -- Mount Poetry Cache
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CACHE }}{% raw %}
+        with:
+          key: poetry-${{ hashFiles('./role/pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
 
       - name: Molecule Lint Test -- Install Requirements
         run: |
-          pip install poetry
-          poetry install
+          cd role
+          source ./.github/scripts/poetry.sh "install-project"
 
       - name: Molecule Lint Test -- Run Linter
         run: |
+          cd role
           poetry run molecule lint
 
       - name: Molecule Lint Test -- Report Job Status (Success)
         if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting was successful!"
+          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting was successful!"
 
       - name: Molecule Lint Test -- Report Job Status (Failure)
         if: failure()
         run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting has failed!"
+          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting has failed!"
 
   molecule_test:
     needs: [_create_python_versions]
@@ -210,56 +236,72 @@ jobs:
     steps:
       - name: Molecule Test -- Checkout Repository
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
+        with:
+          path: "role"
+
+      - name: Molecule Test -- Setup Environment
+        run: |
+          source ./role/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Molecule Test -- Set up Python ${{ matrix.python-version }}
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Molecule Test -- Setup Environment
+      - name: Molecule Test -- Install Poetry
         run: |
-          source ./.github/scripts/setup.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          source ./role/.github/scripts/poetry.sh "install-poetry"
+
+      - name: Molecule Test -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+          source ./role/.github/scripts/ansible_cache.sh  \
+            "$(pwd)/ansible_cache"                        \
+            ~/.cache
+
+      - name: Molecule Test -- Mount Ansible Cache
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CACHE }}{% raw %}
+        with:
+          key: ansible-${{ hashFiles('./role/requirements.yml') }}-${{ env.CACHE_TTL }}
+          path: ansible_cache
+
+      - name: Molecule Test -- Mount Poetry Cache
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CACHE }}{% raw %}
+        with:
+          key: poetry-${{ hashFiles('./role/pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
 
       - name: Molecule Test -- Install Requirements
         run: |
-          pip install poetry
-          poetry install
+          cd role
+          source ./.github/scripts/poetry.sh "install-project"
 
       - name: Molecule Test -- Run docker1 Scenario
         run: |
+          cd role
           poetry run molecule test -s docker1
 
       - name: Molecule Test -- Report Job Status (Success)
         if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule test was successful!"
+          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule test was successful!"
 
       - name: Molecule Test -- Report Job Status (Failure)
         if: failure()
         run: |
-          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule test has failed!"
+          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule test has failed!"
 
   security_test:
-    needs: [_create_python_versions]
 
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
 
     steps:
       - name: Security Test -- Checkout Repository
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
-
-      - name: Security Test -- Set up Python ${{ matrix.python-version }}
-        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Security Test -- Setup Environment
         run: |
@@ -269,13 +311,6 @@ jobs:
 
       - name: Security Test -- Run Gitleaks
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_GITLEAKS }}{% raw %}
-
-      - name: Security Test -- Check Dependencies
-        run: |
-          pip install safety poetry
-          pip install --upgrade pip
-          poetry install
-          poetry export -f requirements.txt --without-hashes | safety check --stdin
 
       - name: Security Test -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'

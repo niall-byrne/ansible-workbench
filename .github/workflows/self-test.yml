@@ -92,182 +92,6 @@ jobs:
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
 
-
-  documentation_test:
-    needs: [_create_configuration]
-
-    runs-on: ubuntu-latest
-    env:
-      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
-
-    steps:
-      - name: Documentation Test -- Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          path: 'template'
-
-      - name: Documentation Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Documentation Test -- Setup Environment / Render Template
-        run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-          source ./template/.github/scripts/template.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Documentation Test -- Check Markdown Links For Template
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/markdown.link.check.json'
-          use-quiet-mode: 'no'
-          use-verbose-mode: 'yes'
-          folder-path: 'template, template/.github/workflows'
-          max-depth: 1
-
-      - name: Documentation Test -- Check Markdown Links For Rendered Template
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          use-quiet-mode: 'no'
-          use-verbose-mode: 'yes'
-          folder-path: ${{ env.TEMPLATED_NAME }}
-          max-depth: -1
-
-      - name: Documentation Test -- Report Job Status on Success
-        if: env.VERBOSE_NOTIFICATIONS == '1'
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
-
-      - name: Documentation Test -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation checks failed!"
-
-  molecule_lint_test:
-    needs: [_create_configuration]
-
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
-
-    steps:
-      - name: Molecule Lint Test -- Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          path: 'template'
-
-      - name: Molecule Lint Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Molecule Lint Test -- Setup Environment / Render Template
-        run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-          source ./template/.github/scripts/template.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Molecule Lint Test -- Lint Rendered Template With Default Scenario
-        run: |
-          cd ${TEMPLATED_NAME}
-          poetry run molecule lint
-
-      - name: Molecule Lint Test -- Report Job Status on Success
-        if: env.VERBOSE_NOTIFICATIONS == '1'
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting checks succeeded!"
-
-      - name: Molecule Lint Test -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting checks failed!"
-
-  push_repository_test:
-    needs: [_create_configuration, _start_notification, documentation_test, molecule_lint_test, security_test, shellcheck_test, yaml_lint_test]
-
-    runs-on: ubuntu-latest
-    env:
-      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
-
-    steps:
-      - name: Push Test -- Checkout Repository
-        uses: actions/checkout@v3
-        with:
-          path: 'template'
-          persist-credentials: false
-
-      - name: Push Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Push Test -- Setup Environment / Render Template
-        run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-          source ./template/.github/scripts/template.sh "GitHub Action" "action@github.com"
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-      - name: Push Test -- Clean Up Tags for Git Push
-        run: |
-          cd ${TEMPLATED_NAME}
-          git checkout master
-          git tag --delete v0.0.0  # Don't Repush
-          git tag v1.0.0
-
-      - name: Push Test -- Push To Test Repository (master)
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: master
-          tags: false
-          directory: ${{ env.TEMPLATED_NAME }}
-          repository: ${{ secrets.REMOTE_ORIGIN }}
-          force: true
-
-      - name: Push Test -- Push To Test Repository (production)
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: production
-          tags: false
-          directory: ${{ env.TEMPLATED_NAME }}
-          repository: ${{ secrets.REMOTE_ORIGIN }}
-          force: true
-
-      - name: Push Test -- Push To Test Repository (release tag)
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: production
-          tags: true
-          directory: ${{ env.TEMPLATED_NAME }}
-          repository: ${{ secrets.REMOTE_ORIGIN }}
-          force: true
-
-      - name: Push Test -- Report Job Status on Success
-        if: env.VERBOSE_NOTIFICATIONS == '1'
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
-
-      - name: Push Test -- Report Job Status on Failure
-        if: failure()
-        run: |
-          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: push failed to trigger!"
-
   create_release:
     needs: [push_repository_test]
 
@@ -319,7 +143,70 @@ jobs:
         run: |
           ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: automated release creation has failed!"
 
-  security_test:
+  documentation_test:
+    needs: [_create_configuration]
+
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+
+    steps:
+      - name: Documentation Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Documentation Test -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Documentation Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Documentation Test -- Install Template Requirements
+        run: |
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Documentation Test -- Render Template
+        run: |
+          source ./template/.github/scripts/template.sh
+
+      - name: Documentation Test -- Check Markdown Links For Template
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/markdown.link.check.json'
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          folder-path: 'template, template/.github/workflows'
+          max-depth: 1
+
+      - name: Documentation Test -- Check Markdown Links For Rendered Template
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          folder-path: ${{ env.TEMPLATED_NAME }}
+          max-depth: -1
+
+      - name: Documentation Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
+
+      - name: Documentation Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation checks failed!"
+
+  molecule_lint_test:
     needs: [_create_configuration]
 
     runs-on: ubuntu-latest
@@ -329,40 +216,180 @@ jobs:
         python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
-      - name: Security Test -- Checkout Repository
+      - name: Molecule Lint Test -- Checkout Repository
         uses: actions/checkout@v3
         with:
           path: 'template'
 
-      - name: Security Test -- Set up Python ${{ matrix.python-version }}
+      - name: MMolecule Lint Test -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Molecule Lint Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Security Test -- Setup Environment / Render Template
+      - name: Molecule Lint Test -- Install Template Requirements
+        run: |
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Molecule Lint Test -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/ansible_cache.sh  \
+            "$(pwd)/ansible_cache"                                                          \
+            ~/.cache
+
+      - name: Molecule Lint Test -- Mount Ansible Cache
+        uses: actions/cache@v3
+        with:
+          key: ansible-${{ hashFiles('./template/{{cookiecutter.project_slug}}/requirements.yml') }}-${{ env.CACHE_TTL }}
+          path: ansible_cache
+
+      - name: Molecule Lint Test -- Mount Poetry Cache
+        uses: actions/cache@v3
+        with:
+          key: poetry-${{ hashFiles('./template/{{cookiecutter.project_slug}}/pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
+
+      - name: Molecule Lint Test -- Render Template
+        run: |
+          source ./template/.github/scripts/template.sh
+
+      - name: Molecule Lint Test -- Lint Rendered Template With Default Scenario
+        run: |
+          cd "${TEMPLATED_NAME}"
+          poetry run molecule lint
+
+      - name: Molecule Lint Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule linting checks succeeded!"
+
+      - name: Molecule Lint Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting checks failed!"
+
+  push_repository_test:
+    needs: [_create_configuration, _start_notification, documentation_test, molecule_lint_test, security_test, shellcheck_test, yaml_lint_test]
+
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+
+    steps:
+      - name: Push Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+          persist-credentials: false
+
+      - name: Push Test -- Setup Environment
         run: |
           source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-          source ./template/.github/scripts/template.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-      - name: Security Test -- Run Gitleaks
+      - name: Push Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Push Test -- Install Template Requirements
+        run: |
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Push Test -- Render Template
+        run: |
+          source ./template/.github/scripts/template.sh "GitHub Action" "action@github.com"
+
+      - name: Push Test -- Clean Up Tags for Git Push
+        run: |
+          cd ${TEMPLATED_NAME}
+          git checkout master
+          git tag --delete v0.0.0  # Don't Repush
+          git tag v1.0.0
+
+      - name: Push Test -- Push To Test Repository (master)
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.REMOTE_TOKEN }}
+          branch: master
+          tags: false
+          directory: ${{ env.TEMPLATED_NAME }}
+          repository: ${{ secrets.REMOTE_ORIGIN }}
+          force: true
+
+      - name: Push Test -- Push To Test Repository (production)
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.REMOTE_TOKEN }}
+          branch: production
+          tags: false
+          directory: ${{ env.TEMPLATED_NAME }}
+          repository: ${{ secrets.REMOTE_ORIGIN }}
+          force: true
+
+      - name: Push Test -- Push To Test Repository (release tag)
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.REMOTE_TOKEN }}
+          branch: production
+          tags: true
+          directory: ${{ env.TEMPLATED_NAME }}
+          repository: ${{ secrets.REMOTE_ORIGIN }}
+          force: true
+
+      - name: Push Test -- Trigger Release Workflow Test
+        run: |
+          gh workflow run -r "${TEST_PUSH_TAG}" -R "${USER_NAME}/${TEMPLATED_NAME}" release.yml -f "TAG=${TEST_PUSH_TAG}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
+
+      - name: Push Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
+
+      - name: Push Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: push failed to trigger!"
+
+  security_test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Security Test Repo -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: 'template'
+
+      - name: Security Test Repo -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Security Test Repo -- Run Gitleaks
         uses: zricethezav/gitleaks-action@v1.6.0
 
-      - name: Security Test -- Check Dependencies
-        run: |
-          pip install --upgrade pip safety
-          cd "${TEMPLATED_NAME}"
-            poetry install
-            poetry export -f requirements.txt --without-hashes | safety check --stdin
-          cd ..
-
-      - name: Security Test -- Report Job Status on Success
+      - name: Security Test Repo -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
 
-      - name: Security Test -- Report Job Status on Failure
+      - name: Security Test Repo -- Report Job Status on Failure
         if: failure()
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: security checks failed!"
@@ -384,17 +411,24 @@ jobs:
         with:
           path: 'template'
 
+      - name: Shellcheck -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
       - name: Shellcheck -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Shellcheck -- Setup Environment / Render Template
+      - name: Shellcheck -- Install Template Requirements
         run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Shellcheck -- Render Template
+        run: |
           source ./template/.github/scripts/template.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Shellcheck -- Shellcheck Scripts
         run: |
@@ -433,17 +467,24 @@ jobs:
         with:
           path: 'template'
 
+      - name: Yaml Lint Test -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
       - name: Yaml Lint Test -- Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Yaml Lint Test -- Setup Environment / Render Template
+      - name: Yaml Lint Test-- Install Template Requirements
         run: |
-          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Yaml Lint Test -- Render Template
+        run: |
           source ./template/.github/scripts/template.sh
-        env:
-          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Yaml Lint Test -- Lint Template GitHub Workflows
         uses: ibiqlik/action-yamllint@v3

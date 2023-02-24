@@ -29,7 +29,7 @@ initialize_git() {
 initialize_poetry() {
 
   if [[ "${ANSIBLE_WORKBENCH_SKIP_POETRY}" != "1" ]]; then
-    poetry install
+    poetry install --verbose
   fi
 
 }
