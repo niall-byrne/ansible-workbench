@@ -31,7 +31,7 @@ main() {
     echo "PUSHED_COMMIT_RANGE<<EOF"
       echo "${PUSHED_COMMIT_RANGE}"
     echo "EOF"
-  } >> "$GITHUB_ENV"
+  } >> "${GITHUB_ENV}"
 
 }
 

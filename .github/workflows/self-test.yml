@@ -99,26 +99,44 @@ jobs:
 
     steps:
       - name: Create Release -- Checkout Repository
-        if: contains(github.ref, '/tags/v')
+        uses: actions/checkout@v3
+
+      - name: Create Release -- Branch Filter
+        id: branch_filter
+        run: |
+          source ./{{cookiecutter.project_slug}}/.github/scripts/branch_filter.sh "${{ github.event.ref }}"
+
+      - name: Create Release -- Checkout Repository (All Commits)
+        if: steps.branch_filter.outputs.match == 'TRUE'
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Create Release -- Setup Environment
-        if: contains(github.ref, '/tags/v')
+        if: steps.branch_filter.outputs.match == 'TRUE'
         run: |
           source ./{{cookiecutter.project_slug}}/.github/scripts/setup.sh
           echo "{}" > package.json
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
+      - name: Create Release -- Install Poetry
+        if: steps.branch_filter.outputs.match == 'TRUE'
+        run: |
+          source ./{{cookiecutter.project_slug}}/.github/scripts/poetry.sh "install-poetry"
+
+      - name: Create Release -- Check 'pyproject.toml' Matches Tag
+        if: steps.branch_filter.outputs.match == 'TRUE'
+        run: |
+          source ./{{cookiecutter.project_slug}}/.github/scripts/version.sh
+
       - name: Create Release -- Generate Changelog
-        if: contains(github.ref, '/tags/v')
+        if: steps.branch_filter.outputs.match == 'TRUE'
         run:
           source ./{{cookiecutter.project_slug}}/.github/scripts/changelog.sh
 
       - name: Create Release -- Create Github Release
-        if: contains(github.ref, '/tags/v')
+        if: steps.branch_filter.outputs.match == 'TRUE'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -134,7 +152,7 @@ jobs:
           prerelease: false
 
       - name: Create Release -- Report Job Status on Success
-        if: contains(github.ref, '/tags/v')
+        if: steps.branch_filter.outputs.match == 'TRUE'
         run: |
           ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created!\nhttps://github.com/${USERNAME}/${PROJECT_NAME}/releases"
 
@@ -315,8 +333,8 @@ jobs:
         run: |
           cd ${TEMPLATED_NAME}
           git checkout master
-          git tag --delete v0.0.0  # Don't Repush
-          git tag v1.0.0
+          git tag --delete 0.0.0  # Don't Repush
+          git tag 0.1.0
 
       - name: Push Test -- Push To Test Repository (master)
         uses: ad-m/github-push-action@v0.6.0

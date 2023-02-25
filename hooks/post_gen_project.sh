@@ -20,7 +20,7 @@ initialize_git() {
   git stage .
   git commit -m "build(COOKIECUTTER): initial generation"
   git symbolic-ref HEAD "refs/heads/${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
-  git tag v0.0.0
+  git tag 0.0.0
   git checkout -b "${ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT}"
   mkdir -p files templates
 
