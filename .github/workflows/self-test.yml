@@ -116,7 +116,6 @@ jobs:
         if: steps.branch_filter.outputs.match == 'TRUE'
         run: |
           source ./{{cookiecutter.project_slug}}/.github/scripts/setup.sh
-          echo "{}" > package.json
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
@@ -135,21 +134,21 @@ jobs:
         run:
           source ./{{cookiecutter.project_slug}}/.github/scripts/changelog.sh
 
-      - name: Create Release -- Create Github Release
+      - name: Create Release -- Generate GitHub Release Draft
         if: steps.branch_filter.outputs.match == 'TRUE'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: create_release
+        uses: actions/github-script@v6
         with:
-          tag_name: ${{ env.BRANCH_OR_TAG }}
-          release_name: Release ${{ env.BRANCH_OR_TAG }}
-          body: |
-            ${{ env.CHANGE_LOG_CONTENT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('./{{cookiecutter.project_slug}}/.github/scripts/release.js');
+            const body = process.env.CHANGE_LOG_CONTENT + "\n" + process.env.CHECK_LIST_CONTENT;
+            const tag = process.env.BRANCH_OR_TAG;
+            await script({ body, context, core, github, tag })
+        env:
+          CHECK_LIST_CONTENT: |
             ## Deployment Checklist
-            - [ ] Ensure documentation is accurate
-            - [ ] Ensure git commits are properly formatted
-          draft: true
-          prerelease: false
+            - [] Ensure master points to new tag
 
       - name: Create Release -- Report Job Status on Success
         if: steps.branch_filter.outputs.match == 'TRUE'
@@ -329,6 +328,13 @@ jobs:
         run: |
           source ./template/.github/scripts/template.sh "GitHub Action" "action@github.com"
 
+      - name: Push Test -- Clean Up Test Releases
+        run: |
+          source ./template/.github/scripts/prune_test_releases.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
+          REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
+
       - name: Push Test -- Clean Up Tags for Git Push
         run: |
           cd ${TEMPLATED_NAME}
@@ -368,9 +374,10 @@ jobs:
 
       - name: Push Test -- Trigger Release Workflow Test
         run: |
-          gh workflow run -r "${TEST_PUSH_TAG}" -R "${USER_NAME}/${TEMPLATED_NAME}" release.yml -f "TAG=${TEST_PUSH_TAG}"
+          gh workflow run -r "${TEST_PUSH_TAG}" -R "${REMOTE_ORIGIN}" release.yml -f "TAG=${TEST_PUSH_TAG}"
         env:
           GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
+          REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'

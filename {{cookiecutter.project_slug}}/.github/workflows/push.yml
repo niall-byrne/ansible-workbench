@@ -117,18 +117,17 @@ jobs:
         run:
           source ./.github/scripts/changelog.sh
 
-      - name: Create Release -- Create Github Release
+      - name: Create Release -- Generate GitHub Release Draft
         if: steps.branch_filter.outputs.match == 'TRUE'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: create_release
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_SCRIPT }}{% raw %}
         with:
-          tag_name: ${{ env.BRANCH_OR_TAG }}
-          release_name: Release ${{ env.BRANCH_OR_TAG }}
-          body: |
-            ${{ env.CHANGE_LOG_CONTENT }}
-          draft: true
-          prerelease: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('./.github/scripts/release.js')
+            const body = process.env.CHANGE_LOG_CONTENT;
+            const tag = process.env.BRANCH_OR_TAG;
+            await script({ body, context, core, github, tag })
 
       - name: Create Release -- Report Job Status (Success)
         if: steps.branch_filter.outputs.match == 'TRUE'
