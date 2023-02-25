@@ -3,7 +3,7 @@
 # .github/scripts/pushed_commit_range.sh
 # Retrieves the range of the commits in a push, and sets the PUSHED_COMMIT_RANGE environment variables.
 
-# GITHUB_CONTEXT:  The github action context object as an environment variable.
+# GITHUB_CONTEXT: The github action context object as an environment variable.
 
 # CI only script
 
