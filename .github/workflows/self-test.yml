@@ -338,25 +338,25 @@ jobs:
       - name: Push Test -- Clean Up Tags for Git Push
         run: |
           cd ${TEMPLATED_NAME}
-          git checkout master
+          git checkout "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
           git tag --delete 0.0.0  # Don't Repush
           git tag 0.1.0
 
-      - name: Push Test -- Push To Test Repository (master)
+      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }})
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: master
+          branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}
           tags: false
           directory: ${{ env.TEMPLATED_NAME }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
 
-      - name: Push Test -- Push To Test Repository (production)
+      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }})
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: production
+          branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }}
           tags: false
           directory: ${{ env.TEMPLATED_NAME }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
@@ -366,7 +366,7 @@ jobs:
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: production
+          branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}
           tags: true
           directory: ${{ env.TEMPLATED_NAME }}
           repository: ${{ secrets.REMOTE_ORIGIN }}

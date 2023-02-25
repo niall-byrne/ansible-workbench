@@ -2,7 +2,7 @@
 version: 2
 updates:
   - package-ecosystem: "pip"
-    target-branch: "master"
+    target-branch: "{{ cookiecutter._BRANCH_NAME_BASE }}"
     directory: "/"
     schedule:
       interval: "weekly"

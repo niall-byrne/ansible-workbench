@@ -4,11 +4,11 @@ Ansible Role Development Environment.
 
 (Please see the [cookiecutter documentation](https://cookiecutter.readthedocs.io/) for instructions on how to use this project template.)
 
-##### Master Branch:
+##### Master Branch (Follows the latest production tag):
 [![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=master)](https://github.com/niall-byrne/ansible-workbench/actions)
 
-##### Production Branch:
-[![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=production)](https://github.com/niall-byrne/ansible-workbench/actions)
+##### Dev Branch:
+[![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=dev)](https://github.com/niall-byrne/ansible-workbench/actions)
 
 ## About
 
@@ -27,8 +27,6 @@ Give your project a name, and populate the other required template inputs.
 Once the templating is finished:
 - `cd <your new project director>`
 - `poetry shell` (to interact with ansible and molecule inside a virtualenv)
-
-A `master` branch will be created, allowing you to manage a separate `production` branch in [gitlabflow](https://docs.gitlab.com/ee/topics/gitlab_flow.html) style.
 
 ## License
 
