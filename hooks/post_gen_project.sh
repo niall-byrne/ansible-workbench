@@ -5,6 +5,7 @@
 
 # ANSIBLE_WORKBENCH_BRANCH_NAME_BASE:         Optional alternate base branch name.
 # ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT:  Optional alternate development branch name.
+# ANSIBLE_WORKBENCH_SKIP_GIT_INIT:            Optionally set to 1 to skip creating branches and initial commit.
 # ANSIBLE_WORKBENCH_SKIP_POETRY:              Optionally set to 1 to skip installing dependencies.
 # ANSIBLE_WORKBENCH_SKIP_PRECOMMIT:           Optionally set to 1 to skip installing pre-commit hooks.
 
@@ -18,14 +19,16 @@ ANSIBLE_WORKBENCH_TEMPLATE_URL="https://github.com/niall-byrne/ansible-workbench
 
 initialize_git() {
 
-  git init
-  git checkout -b "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
-  git stage .
-  git commit -m "build(COOKIECUTTER): initial generation"
-  git symbolic-ref HEAD "refs/heads/${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
-  git tag 0.0.0
-  git checkout -b "${ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT}"
-  mkdir -p files templates
+  if [[ "${ANSIBLE_WORKBENCH_SKIP_GIT_INIT}" != "1" ]]; then
+    git init
+    git checkout -b "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
+    git stage .
+    git commit -m "build(COOKIECUTTER): initial generation"
+    git symbolic-ref HEAD "refs/heads/${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
+    git tag 0.0.0
+    git checkout -b "${ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT}"
+    mkdir -p files templates
+  fi
 
 }
 
