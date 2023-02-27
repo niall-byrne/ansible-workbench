@@ -41,7 +41,6 @@ main() {
       -e ".gitignore"                                                     \
       -e "pyproject.toml"                                                 \
       -e "requirements.yml"                                               \
-      -e ".travis.yml"                                                    \
       -e "LICENSE"                                                        \
       -e "README.md"
 

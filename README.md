@@ -10,7 +10,7 @@
 
 ## About
 
-This [cookiecutter](https://cookiecutter.readthedocs.io/) template generates a development environment for [Ansible Roles](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html) with comprehensive functional CI/CD for both Travis CI and GitHub Actions.
+This [cookiecutter](https://cookiecutter.readthedocs.io/) template generates a development environment for [Ansible Roles](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html) with comprehensive functional CI/CD for GitHub Actions.
 
 [Poetry](https://python-poetry.org/) powers a [Python virtual environment](https://docs.python.org/3/library/venv.html) loaded with [Molecule](https://molecule.readthedocs.io/en/latest/), and [Ansible-Lint](https://ansible-lint.readthedocs.io/) allowing you to develop and test roles with a focus on quality.
 
@@ -95,5 +95,3 @@ Integrations with the following third party services are configured during templ
 
 - [GitHub Workflows](https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions)
   - [workflows](./{{cookiecutter.project_slug}}/.github/workflows)
-- [TravisCI](https://travis-ci.com/)
-  - [.travis.yml](./{{cookiecutter.project_slug}}/.travis.yml)
