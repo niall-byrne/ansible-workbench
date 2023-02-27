@@ -249,6 +249,7 @@ jobs:
       max-parallel: 4
       matrix:
         python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        scenario: ["docker1", "hostmachine1"]
 
     steps:
       - name: Molecule Test -- Checkout Repository
@@ -295,10 +296,26 @@ jobs:
           cd role
           source ./.github/scripts/poetry.sh "install-project"
 
-      - name: Molecule Test -- Run docker1 Scenario
+      - name: Molecule Test -- Reuse Cached Dependencies as Scenario
         run: |
           cd role
-          poetry run molecule test -s docker1
+          poetry run molecule dependency
+          mv ~/.cache/molecule/role/default ~/.cache/molecule/role/"${SCENARIO}"
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+
+      - name: Molecule Test -- Run ${{ matrix.scenario }} Scenario
+        run: |
+          cd role
+          poetry run molecule test -s "${SCENARIO}"
+        env:
+          SCENARIO: ${{ matrix.scenario }}
+
+      - name: Molecule Test -- Reuse Scenario Dependencies as Cache
+        run: |
+          mv ~/.cache/molecule/role/"${SCENARIO}" ~/.cache/molecule/role/default
+        env:
+          SCENARIO: ${{ matrix.scenario }}
 
       - name: Molecule Test -- Report Job Status (Success)
         if: env.VERBOSE_NOTIFICATIONS == '1'
