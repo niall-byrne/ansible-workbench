@@ -1,0 +1,37 @@
+---
+repos:
+  - repo: local
+    hooks:
+      - id: commit-lint
+        name: commit-lint
+        description: "Check whether the commit message follows committing rules."
+        entry: ./{{cookiecutter.project_slug}}/.pre-commit/commit-lint.sh
+        language: system
+        stages: [commit-msg]
+      - id: shell-lint
+        name: shell-lint
+        description: "Lint the project's shell scripts."
+        entry: shellcheck
+        files: "^.+\\.sh$"
+        exclude: "^{{cookiecutter.project_slug}}/.+$"
+        language: system
+        pass_filenames: true
+        stages: [commit]
+      - id: toml-lint
+        name: toml-lint
+        description: "Lint the project's TOML files."
+        entry: ./{{cookiecutter.project_slug}}/.pre-commit/toml-lint.sh
+        files: "^.+\\.toml$"
+        language: system
+        stages: [commit]
+        pass_filenames: true
+      - id: yaml-lint
+        name: yaml-lint
+        description: "Lint the project's YAML files."
+        entry: ./{{cookiecutter.project_slug}}/.pre-commit/yaml-lint.sh
+        args: ["-c", "./{{cookiecutter.project_slug}}/.yamllint.yml"]
+        files: "^.+\\.(yaml|yml)$"
+        exclude: "^{{cookiecutter.project_slug}}/.+$"
+        language: system
+        pass_filenames: true
+        stages: [commit]

@@ -92,6 +92,69 @@ jobs:
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
 
+  commit_lint_test:
+    needs: [_create_configuration]
+
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 0
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+
+    steps:
+      - name: Commit Lint Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Commit Lint Test -- Setup Environment
+        run: |
+          source ./{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+          source ./{{cookiecutter.project_slug}}/.github/scripts/pushed_commit_range.sh
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Commit Lint Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Commit Lint Test -- Install Poetry
+        run: |
+          source ./{{cookiecutter.project_slug}}/.github/scripts/poetry.sh "install-poetry"
+
+      - name: Commit Lint Test -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+
+      - name: Commit Lint Test -- Mount Poetry Cache
+        uses: actions/cache@v3
+        with:
+          key: poetry-${{ hashFiles('./pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
+
+      - name: Commit Lint Test -- Install Requirements
+        run: |
+          source ./{{cookiecutter.project_slug}}/.github/scripts/poetry.sh "install-project"
+
+      - name: Commit Lint Test -- Lint Pushed Commits
+        run: |
+          poetry run cz check --rev-range "${PUSHED_COMMIT_REV_RANGE}"
+
+      - name: Commit Lint Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: commit lint checks succeeded!"
+
+      - name: Commit Lint Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: commit lint checks failed!"
+
   create_release:
     needs: [push_repository_test]
 
@@ -387,7 +450,7 @@ jobs:
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: pre-commit hook test has failed!"
 
   push_repository_test:
-    needs: [_create_configuration, _start_notification, documentation_test, molecule_lint_test, precommit_test, security_test, shellcheck_test, toml_lint_test, yaml_lint_test]
+    needs: [_create_configuration, _start_notification, commit_lint_test, documentation_test, molecule_lint_test, precommit_test, security_test, shellcheck_test, toml_lint_test, yaml_lint_test]
 
     runs-on: ubuntu-latest
     env:
@@ -520,7 +583,7 @@ jobs:
         uses: trufflesecurity/trufflehog@v3.27.1
         with:
           path: .
-          base: ${{ env.PUSHED_COMMIT_RANGE }}
+          base: ${{ env.PUSHED_COMMIT_START }}
           head: ${{ env.BRANCH_OR_TAG }}
 
       - name: Security Test Repo -- Report Job Status on Success
@@ -630,7 +693,13 @@ jobs:
         run: |
           source ./template/.github/scripts/template.sh
 
-      - name: Toml Lint Test -- Run Linter
+      - name: Toml Lint Test -- Run Linter On Template
+        run: |
+          cd "template"
+          find . -type f -name "*.toml" -exec tomll "{}" \;
+          git diff --exit-code
+
+      - name: Toml Lint -- Run Linter On Rendered Template
         run: |
           cd "${TEMPLATED_NAME}"
           find . -type f -name "*.toml" -exec tomll "{}" \;

@@ -77,7 +77,7 @@ jobs:
 
   create_release:
     needs: {% endraw %}[_create_python_versions, _start_notification, documentation_test, molecule_lint_test, molecule_test, security_test,{% if cookiecutter.optional_toml_linting == 'true' %} toml_lint_test,{% endif %} yaml_lint_test]{% raw %}
-
+    
     runs-on: ubuntu-latest
 
     steps:
@@ -349,7 +349,7 @@ jobs:
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_TRUFFLEHOG }}{% raw %}
         with:
           path: .
-          base: ${{ env.PUSHED_COMMIT_RANGE }}
+          base: ${{ env.PUSHED_COMMIT_START }}
           head: ${{ env.BRANCH_OR_TAG }}
 
       - name: Security Test -- Report Job Status on Success

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # .github/scripts/pushed_commit_range.sh
-# Retrieves the range of the commits in a push, and sets the PUSHED_COMMIT_RANGE environment variables.
+# Retrieves the range of the commits in a push, and sets the PUSHED_COMMIT_START environment variables.
 
 # GITHUB_CONTEXT: The github action context object as an environment variable.
 
@@ -17,20 +17,21 @@ get_all_commits() {
 
 main() {
 
-  PUSHED_COMMIT_RANGE="HEAD~$(echo "$GITHUB_CONTEXT" | jq '.event.commits | length')"
+  PUSHED_COMMIT_START="HEAD~$(echo "${GITHUB_CONTEXT}" | jq '.event.commits | length')"
+  PUSHED_COMMIT_REV_RANGE="${PUSHED_COMMIT_START}..HEAD"
 
-  if [[ "${PUSHED_COMMIT_RANGE}" == "HEAD~0" ]]; then
-    PUSHED_COMMIT_RANGE="$(get_all_commits)"
+  if [[ "${PUSHED_COMMIT_REV_RANGE}" == "HEAD~0" ]]; then
+    PUSHED_COMMIT_START="$(get_all_commits)"
+    PUSHED_COMMIT_REV_RANGE="HEAD"
   fi
 
-  if ! git rev-parse "${PUSHED_COMMIT_RANGE}"; then
-    PUSHED_COMMIT_RANGE="$(get_all_commits)"
+  if ! git rev-parse "${PUSHED_COMMIT_REV_RANGE}"; then
+    PUSHED_COMMIT_START="$(get_all_commits)"
   fi
 
   {
-    echo "PUSHED_COMMIT_RANGE<<EOF"
-      echo "${PUSHED_COMMIT_RANGE}"
-    echo "EOF"
+    echo "PUSHED_COMMIT_REV_RANGE=${PUSHED_COMMIT_REV_RANGE}"
+    echo "PUSHED_COMMIT_START=${PUSHED_COMMIT_START}"
   } >> "${GITHUB_ENV}"
 
 }
