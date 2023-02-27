@@ -10,6 +10,8 @@
 
 # cookiecutter only script.
 
+set -eo pipefail
+
 ANSIBLE_WORKBENCH_BRANCH_NAME_BASE="${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE-"{{ cookiecutter._BRANCH_NAME_BASE }}"}"
 ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT="${ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT-"{{ cookiecutter._BRANCH_NAME_DEVELOPMENT }}"}"
 ANSIBLE_WORKBENCH_TEMPLATE_URL="https://github.com/niall-byrne/ansible-workbench.git"

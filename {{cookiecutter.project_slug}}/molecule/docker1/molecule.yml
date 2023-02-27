@@ -4,11 +4,13 @@ dependency:
   options:
     role-file: requirements.yml
     requirements-file: requirements.yml
+    timeout: "120"
+    force: false
 driver:
   name: docker
 platforms:
   - name: instance
-    image: docker.io/pycontribs/centos:8
+    image: fedora:latest
     pre_build_image: true
 provisioner:
   name: ansible

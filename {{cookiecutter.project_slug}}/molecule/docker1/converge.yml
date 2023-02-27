@@ -2,11 +2,10 @@
 - name: Converge
   hosts: all
   connection: local
-  vars:
 
   tasks:
     - name: Load Scenario Variables
-      include_vars: vars/main.yml
+      ansible.builtin.include_vars: vars/main.yml
     - name: "Include {{ cookiecutter.galaxy_namespace_slug }}.{{ cookiecutter.galaxy_role_slug }}"
       ansible.builtin.include_role:
         name: "{{ cookiecutter.galaxy_namespace_slug }}.{{ cookiecutter.galaxy_role_slug }}"

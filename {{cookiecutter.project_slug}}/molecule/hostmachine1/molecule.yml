@@ -4,6 +4,8 @@ dependency:
   options:
     role-file: requirements.yml
     requirements-file: requirements.yml
+    timeout: "120"
+    force: false
 driver:
   name: delegated
   options:
@@ -11,10 +13,12 @@ driver:
     ansible_connection_options:
       ansible_connection: local
       ansible_sudo_pass: "${ANSIBLE_SUDO_PASSWORD}"
-  become_method: sudo
 platforms:
   - name: instance
 provisioner:
   name: ansible
+  config_options:
+    privilege_escalation:
+      become_method: sudo
 verifier:
   name: ansible

@@ -1,8 +1,6 @@
 # Ansible Workbench
 
-Ansible Role Development Environment.
-
-(Please see the [cookiecutter documentation](https://cookiecutter.readthedocs.io/) for instructions on how to use this project template.)
+[Ansible](https://www.ansible.com/) Role Development Environment.
 
 ##### Master Branch (Follows the latest production tag):
 [![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/workflows/ansible-workbench-self-test/badge.svg?branch=master)](https://github.com/niall-byrne/ansible-workbench/actions)
@@ -12,10 +10,19 @@ Ansible Role Development Environment.
 
 ## About
 
-This template generates a development environment for Ansible Roles with a functional CI/CD template for both Travis CI and Github.
+This [cookiecutter](https://cookiecutter.readthedocs.io/) template generates a development environment for [Ansible Roles](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html) with comprehensive functional CI/CD for both Travis CI and GitHub Actions.
+
+[Poetry](https://python-poetry.org/) powers a [Python virtual environment](https://docs.python.org/3/library/venv.html) loaded with [Molecule](https://molecule.readthedocs.io/en/latest/), and [Ansible-Lint](https://ansible-lint.readthedocs.io/) allowing you to develop and test roles with a focus on quality.
+
+**Windows Users**:
+- If you are working locally with Windows, you'll need a Posix or Linux virtual environment of some kind to use this template.
+- Neither Ansible, nor Ansible-Lint support this platform.
+
+**OSX, Linux, BSD Users**:
+- Please follow the [Quick Start Guide](#Quick%20Start%20Guide) below.
 
 ## Requirements
-You'll need [Python](https://www.python.org/) 3.9 or later to use this template.
+You'll need [Python](https://www.python.org/) **3.9** or later to use this template.  ([Ansible](https://www.ansible.com/) now requires this.)
 
 ## Quick Start Guide
 
@@ -24,9 +31,15 @@ You'll need [Python](https://www.python.org/) 3.9 or later to use this template.
 
 Give your project a name, and populate the other required template inputs.
 
+(Please read the section on [TOML Linting](#Maintaining%20your%20pyproject.toml%20File) for details on this optional tooling.) 
+
 Once the templating is finished:
 - `cd <your new project director>`
-- `poetry shell` (to interact with ansible and molecule inside a virtualenv)
+- `poetry shell` (to interact with [Ansible](https://www.ansible.com/) and [Molecule](https://molecule.readthedocs.io/en/latest/) inside a virtualenv)
+
+You can then execute commands against the placeholder content:
+- `molecule lint`
+- `molecule test -s docker1`
 
 ## License
 
@@ -80,7 +93,7 @@ The python library [pre-commit](https://pre-commit.com/) comes installed with a 
 
 Integrations with the following third party services are configured during templating:
 
-- [Github Workflows](https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions)
+- [GitHub Workflows](https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions)
   - [workflows](./{{cookiecutter.project_slug}}/.github/workflows)
 - [TravisCI](https://travis-ci.com/)
   - [.travis.yml](./{{cookiecutter.project_slug}}/.travis.yml)
