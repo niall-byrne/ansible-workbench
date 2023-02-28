@@ -23,8 +23,25 @@ env:
 {% raw %}
 jobs:
 
-  publish_to_galaxy:
+  _create_configuration:
 
+    runs-on: ubuntu-latest
+    outputs:
+      publish_to_galaxy: ${{ steps.check_for_api_key.outputs.publish_to_galaxy }}
+
+    steps:
+      - name: Create Configuration -- Set Publish to Galaxy as Output
+        id: check_for_api_key
+        run: |
+          [[ -n "${API_KEY}" ]] && PUBLISH_TO_GALAXY="true" || PUBLISH_TO_GALAXY="false"
+          echo "publish_to_galaxy=${PUBLISH_TO_GALAXY}" >> $GITHUB_OUTPUT
+        env:
+          API_KEY: ${{ secrets.GALAXY_API_KEY }}
+
+  publish_to_galaxy:
+    needs: [_create_configuration]
+
+    if: needs._create_configuration.outputs.publish_to_galaxy == 'true'
     runs-on: ubuntu-latest
 
     steps:
