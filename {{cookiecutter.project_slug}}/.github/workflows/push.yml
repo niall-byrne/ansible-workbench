@@ -16,17 +16,24 @@ env:
 {% raw %}
 jobs:
 
-  _create_python_versions:
+  _create_configuration:
 
     runs-on: ubuntu-latest
     outputs:
-      python-versions: ${{ steps.create_matrix.outputs.python-versions }}
+      configuration: ${{ steps.read_configuration.outputs.configuration }}
 
     steps:
-      - name: Create Python Versions -- Set Configured Python Versions as Output
-        id: create_matrix
+      - name: Create Configuration -- Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Create Configuration -- Set Configuration as Output
+        id: read_configuration
         run: |
-          echo 'python-versions={% endraw %}{{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }}{% raw %}' >> $GITHUB_OUTPUT
+          {
+            echo "configuration<<EOF"
+            cat .cookiecutter/cookiecutter.json
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
   _start_notification:
 
@@ -232,13 +239,13 @@ jobs:
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: documentation test has failed!"
 
   molecule_lint_test:
-    needs: [_create_python_versions]
+    needs: [_create_configuration]
 
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
 
@@ -302,13 +309,14 @@ jobs:
           ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting has failed!"
 
   molecule_test:
-    needs: [_create_python_versions]
+    needs: [_create_configuration]
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ${{ fromJson(needs._create_python_versions.outputs.python-versions) }}
+        platform: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_MOLECULE_TEST_PLATFORMS }}
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
         scenario: ["docker1", "hostmachine1"]
 
     steps:
