@@ -457,12 +457,11 @@ jobs:
     env:
       ANSIBLE_WORKBENCH_SKIP_POETRY: 1
       ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
-      TEMPLATED_NAME_1: "flower-generator-with-toml"
-      TEMPLATED_NAME_2: "flower-generator-no-toml"
       TEST_PUSH_TAG: "0.1.0"
     strategy:
       max-parallel: 4
       matrix:
+        cookiecutter-toml-selection: [1, 2]
         python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
 
     steps:
@@ -489,67 +488,48 @@ jobs:
 
       - name: Push Test -- Render Template
         run: |
-          source ./template/.github/scripts/template.sh "1" "GitHub Action" "action@github.com"
-          mv "${TEMPLATED_NAME}" "${TEMPLATED_NAME_1}"
-          source ./template/.github/scripts/template.sh "2" "GitHub Action" "action@github.com"
-          mv "${TEMPLATED_NAME}" "${TEMPLATED_NAME_2}"
+          source ./template/.github/scripts/template.sh "${SELECTION_TOML}" "GitHub Action" "action@github.com"
+        env:
+          SELECTION_TOML: ${{ matrix.cookiecutter-toml-selection }}
 
       - name: Push Test -- Clean Up Test Releases
+        if: matrix.cookiecutter-toml-selection == 1
         run: |
           source ./template/.github/scripts/prune_test_releases.sh
         env:
           GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
-      - name: Push Test -- Clean Up Tags for Git Push (${{ env.TEMPLATED_NAME_1 }})
+      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }})
+        if: matrix.cookiecutter-toml-selection == 1
         run: |
-          cd ${TEMPLATED_NAME_1}
-          git checkout "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
-          git tag --delete 0.0.0  # Don't Repush
+          source ./template/.github/scripts/test_push.sh "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
+        env:
+          REMOTE_TOKEN: ${{ secrets.REMOTE_TOKEN }}
+          REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
-      - name: Push Test -- Test Commit (${{ env.TEMPLATED_NAME_1 }})
+      - name: Push Test -- Push To Test Repository (${{ env.TEST_PUSH_TAG }})
+        if: matrix.cookiecutter-toml-selection == 1
         run: |
-          cd "${TEMPLATED_NAME_1}"
-          echo "test commit" > test_file.txt
-          git add test_file.txt
-          git commit -m 'feat(TEST_FILE): add test file'
-          git tag "${TEST_PUSH_TAG}"
-
-      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}) (${{ env.TEMPLATED_NAME_1 }})
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}
-          tags: false
-          directory: ${{ env.TEMPLATED_NAME_1 }}
-          repository: ${{ secrets.REMOTE_ORIGIN }}
-          force: true
-
-      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }}) (${{ env.TEMPLATED_NAME_2 }})
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }}
-          tags: false
-          directory: ${{ env.TEMPLATED_NAME_2 }}
-          repository: ${{ secrets.REMOTE_ORIGIN }}
-          force: true
-
-      - name: Push Test -- Push To Test Repository (release tag)
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.REMOTE_TOKEN }}
-          branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}
-          tags: true
-          directory: ${{ env.TEMPLATED_NAME_1 }}
-          repository: ${{ secrets.REMOTE_ORIGIN }}
-          force: true
+          source ./template/.github/scripts/test_push.sh "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}" "${TEST_PUSH_TAG}"
+        env:
+          REMOTE_TOKEN: ${{ secrets.REMOTE_TOKEN }}
+          REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Trigger Release Workflow Test
+        if: matrix.cookiecutter-toml-selection == 1
         run: |
           gh workflow run -r "${TEST_PUSH_TAG}" -R "${REMOTE_ORIGIN}" release.yml -f "TAG=${TEST_PUSH_TAG}"
         env:
           GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
+          REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
+
+      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }})
+        if: matrix.cookiecutter-toml-selection == 2
+        run: |
+          source ./template/.github/scripts/test_push.sh "${ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT}"
+        env:
+          REMOTE_TOKEN: ${{ secrets.REMOTE_TOKEN }}
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Report Job Status on Success
