@@ -18,7 +18,7 @@ on:
 env:
   PROJECT_NAME: "{{ cookiecutter.project_slug }}"
   PYTHON_VERSIONS: '{{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }}'
-  USERNAME: "{{ cookiecutter.github_handle }}"
+  USER_NAME: "{{ cookiecutter.github_handle }}"
 
 {% raw %}
 jobs:
@@ -77,7 +77,7 @@ jobs:
       - name: Publish to Galaxy -- Trigger Ansible Galaxy Import
         run: |
           cd role
-          poetry run ansible-galaxy role import ${USERNAME} ${PROJECT_NAME} --token ${API_KEY} | tee import.log
+          poetry run ansible-galaxy role import ${USER_NAME} ${PROJECT_NAME} --token ${API_KEY} | tee import.log
           grep "0 errors" import.log
         env:
           API_KEY: ${{ secrets.GALAXY_API_KEY }}

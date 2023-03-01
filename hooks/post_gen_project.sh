@@ -6,6 +6,7 @@
 # ANSIBLE_WORKBENCH_BRANCH_NAME_BASE:         Optional alternate base branch name.
 # ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT:  Optional alternate development branch name.
 # ANSIBLE_WORKBENCH_SKIP_POETRY:              Optionally set to 1 to skip installing dependencies.
+# ANSIBLE_WORKBENCH_SKIP_PRECOMMIT:           Optionally set to 1 to skip installing pre-commit hooks.
 
 # cookiecutter only script.
 
@@ -34,6 +35,15 @@ initialize_poetry() {
 
 }
 
+initialize_precommit() {
+
+  if [[ "${ANSIBLE_WORKBENCH_SKIP_PRECOMMIT}" != "1" ]]; then
+    poetry run pre-commit install -t pre-commit -t commit-msg
+    poetry run molecule dependency
+  fi
+
+}
+
 update_template_values() {
 
   if ! grep "${ANSIBLE_WORKBENCH_TEMPLATE_URL}" .cookiecutter/cookiecutter.json; then
@@ -49,6 +59,7 @@ main() {
   update_template_values
   initialize_git
   initialize_poetry
+  initialize_precommit
 
 }
 

@@ -1,6 +1,7 @@
 {
     "project_name": "Flower Generator",
     "project_slug": "{{ cookiecutter.project_name|slugify }}",
+    "optional_toml_linting": ["true", "false"],
     "github_handle": "niall-byrne",
     "galaxy_role_slug": "{{ cookiecutter.project_slug.replace('-', '_').replace('.', '_') }}",
     "galaxy_namespace_slug": "{{ cookiecutter.github_handle|slugify|replace('-', '_')|replace('.', '_') }}",

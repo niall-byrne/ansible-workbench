@@ -1,0 +1,29 @@
+---
+repos:
+  - repo: local
+    hooks:
+      - id: commit-lint
+        name: commit-lint
+        description: "Check whether the commit message follows committing rules."
+        entry: ./.pre-commit/commit-lint.sh
+        language: system
+        stages: [commit-msg]
+      - id: molecule-lint
+        name: molecule-lint
+        description: "Check the profile for Ansible best practices."
+        entry: ./.pre-commit/molecule-lint.sh
+        files: "^.+\\.(yaml|yml)$|^.ansible-lint$"
+        exclude: "^.github/.+$"
+        language: system
+        pass_filenames: false
+        stages: [commit]
+{%- if cookiecutter.optional_toml_linting == 'true' %}
+      - id: toml-lint
+        name: toml-lint
+        description: "Lint the project's TOML files."
+        entry: ./.pre-commit/toml-lint.sh
+        files: "^.+\\.toml$"
+        language: system
+        stages: [commit]
+        pass_filenames: true
+{%- endif %}

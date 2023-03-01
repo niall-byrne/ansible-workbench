@@ -52,6 +52,30 @@ Poetry is leveraged to manage the Python dependencies:
 | molecule     | Ansible test framework                       |
 | yamllint     | Lints yaml configuration files               |
 
+### Maintaining your pyproject.toml File
+
+The template also presents the option to create a pre-commit hook, and a GitHub workflow step to format the [pyproject.toml](./{{cookiecutter.project_slug}}/pyproject.toml) file:
+- This is accomplished via the golang binary [tomll](https://github.com/pelletier/go-toml).
+- This is the most robust TOML formatter I'm aware of right now.
+- However, to use it, you'll need to install the binary on your locale system.
+
+If you'd like to install it and give it a try:
+- You can download the latest binary [here](https://github.com/pelletier/go-toml/releases).
+- Alternatively, your OS's package manager may support this tool.
+  - For example: [Ubuntu](https://manpages.ubuntu.com/manpages/jammy/man1/tomll.1.html) 
+- You can also compile the tool yourself fairly easily from [source](https://github.com/pelletier/go-toml).
+  - If you have go installed: `$ go install github.com/pelletier/go-toml/v2/cmd/tomll@latest`
+
+## Pre-Commit Git Hooks
+The python library [pre-commit](https://pre-commit.com/) comes installed with a few useful initial hooks:
+
+### Default Pre-Commit Hooks:
+| Hook Name          | Description                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| commit-lint        | Runs [commitizen](https://commitizen-tools.github.io/commitizen/) on your commit message to validate it.     |
+| molecule-lint      | Checks your profile for best Ansible practices and behaviour.                                                |
+| toml-lint          | Optionally runs [tomll](https://github.com/pelletier/go-toml) on your TOML configuration file.               |
+
 ## Third Party Integrations
 
 Integrations with the following third party services are configured during templating:

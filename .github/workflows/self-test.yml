@@ -2,9 +2,9 @@
 name: ansible-workbench-self-test
 
 # Required Github Repository Secrets:
-# REMOTE_TOKEN      - Github Token With Access To This Repo
-# REMOTE_ORIGIN     - The git remote repository name (organization/repo)
-# SLACK_WEBHOOK     - The slack webhook for build notifications
+# REMOTE_TOKEN      - GitHub token with access to the test repository.
+# REMOTE_ORIGIN     - The git remote repository name (organization/repo).
+# SLACK_WEBHOOK     - The slack webhook for build notifications.
 
 on:
   push:
@@ -16,7 +16,7 @@ env:
   ANSIBLE_WORKBENCH_BRANCH_NAME_BASE: "master"
   ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT: "dev"
   PROJECT_NAME: "ansible-workbench"
-  USERNAME: "niall-byrne"
+  USER_NAME: "niall-byrne"
   TEMPLATED_NAME: "flower-generator"
   VERBOSE_NOTIFICATIONS: 0
 
@@ -153,7 +153,7 @@ jobs:
       - name: Create Release -- Report Job Status on Success
         if: steps.branch_filter.outputs.match == 'TRUE'
         run: |
-          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created!\nhttps://github.com/${USERNAME}/${PROJECT_NAME}/releases"
+          ./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created!\nhttps://github.com/${USER_NAME}/${PROJECT_NAME}/releases"
 
       - name: Create Release -- Report Job Status on Failure
         if: failure()
@@ -166,6 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
     strategy:
       max-parallel: 4
       matrix:
@@ -227,6 +228,9 @@ jobs:
     needs: [_create_configuration]
 
     runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 0
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 0
     strategy:
       max-parallel: 4
       matrix:
@@ -291,12 +295,107 @@ jobs:
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule linting checks failed!"
 
+  precommit_test:
+    needs: [_create_configuration]
+
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 0
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 0
+    strategy:
+      matrix:
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+        cookiecutter-toml-selection: [1, 2]
+
+    steps:
+
+      - name: Pre-Commit Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Pre-Commit Test -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Pre-Commit Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Pre-Commit Test -- Install Template Requirements
+        run: |
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Pre-Commit Test -- Install tomll
+        run: |
+          sudo apt-get install -y golang-github-pelletier-go-toml
+
+      - name: Pre-Commit -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/ansible_cache.sh  \
+            "$(pwd)/ansible_cache"                                                          \
+            ~/.cache
+
+      - name: Pre-Commit -- Mount Ansible Cache
+        uses: actions/cache@v3
+        with:
+          key: ansible-${{ hashFiles('./template/{{cookiecutter.project_slug}}/requirements.yml') }}-${{ env.CACHE_TTL }}
+          path: ansible_cache
+
+      - name: Pre-Commit Test -- Mount Poetry Cache
+        uses: actions/cache@v3
+        with:
+          key: poetry-${{ hashFiles('./template/{{cookiecutter.project_slug}}/pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
+
+      - name: Pre-Commit Test -- Render Template
+        run: |
+          source ./template/.github/scripts/template.sh "${SELECTION_TOML}" "GitHub Action" "action@github.com"
+        env:
+          SELECTION_TOML: ${{ matrix.cookiecutter-toml-selection }}
+
+      - name: Pre-Commit Test -- Test Commit Lint -- Expect Failure
+        run: |
+          source ./template/.github/scripts/test_precommit.sh "commit-lint"
+
+      - name: Pre-Commit Test -- Test Molecule Lint -- Expect Failure
+        run: |
+          source ./template/.github/scripts/test_precommit.sh "molecule-lint"
+
+      - name: Pre-Commit Test -- Test TOML Lint -- Expect Failure
+        if: matrix.cookiecutter-toml-selection == 1
+        run: |
+          source ./template/.github/scripts/test_precommit.sh "toml-lint-1"
+
+      - name: Pre-Commit Test -- Test TOML Lint -- Expect Success
+        if: matrix.cookiecutter-toml-selection == 1
+        run: |
+          source ./template/.github/scripts/test_precommit.sh "toml-lint-2"
+
+      - name: Pre-Commit Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: pre-commit hook test has passed!"
+
+      - name: Pre-Commit Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: pre-commit hook test has failed!"
+
   push_repository_test:
-    needs: [_create_configuration, _start_notification, documentation_test, molecule_lint_test, security_test, shellcheck_test, yaml_lint_test]
+    needs: [_create_configuration, _start_notification, documentation_test, molecule_lint_test, precommit_test, security_test, shellcheck_test, toml_lint_test, yaml_lint_test]
 
     runs-on: ubuntu-latest
     env:
       ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
+      TEMPLATED_NAME_1: "flower-generator-with-toml"
+      TEMPLATED_NAME_2: "flower-generator-no-toml"
+      TEST_PUSH_TAG: "0.1.0"
     strategy:
       max-parallel: 4
       matrix:
@@ -326,7 +425,10 @@ jobs:
 
       - name: Push Test -- Render Template
         run: |
-          source ./template/.github/scripts/template.sh "GitHub Action" "action@github.com"
+          source ./template/.github/scripts/template.sh "1" "GitHub Action" "action@github.com"
+          mv "${TEMPLATED_NAME}" "${TEMPLATED_NAME_1}"
+          source ./template/.github/scripts/template.sh "2" "GitHub Action" "action@github.com"
+          mv "${TEMPLATED_NAME}" "${TEMPLATED_NAME_2}"
 
       - name: Push Test -- Clean Up Test Releases
         run: |
@@ -335,30 +437,37 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
-      - name: Push Test -- Clean Up Tags for Git Push
+      - name: Push Test -- Clean Up Tags for Git Push (${{ env.TEMPLATED_NAME_1 }})
         run: |
-          cd ${TEMPLATED_NAME}
+          cd ${TEMPLATED_NAME_1}
           git checkout "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
           git tag --delete 0.0.0  # Don't Repush
-          git tag 0.1.0
 
-      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }})
+      - name: Push Test -- Test Commit (${{ env.TEMPLATED_NAME_1 }})
+        run: |
+          cd "${TEMPLATED_NAME_1}"
+          echo "test commit" > test_file.txt
+          git add test_file.txt
+          git commit -m 'feat(TEST_FILE): add test file'
+          git tag "${TEST_PUSH_TAG}"
+
+      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}) (${{ env.TEMPLATED_NAME_1 }})
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.REMOTE_TOKEN }}
           branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}
           tags: false
-          directory: ${{ env.TEMPLATED_NAME }}
+          directory: ${{ env.TEMPLATED_NAME_1 }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
 
-      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }})
+      - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }}) (${{ env.TEMPLATED_NAME_2 }})
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.REMOTE_TOKEN }}
           branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }}
           tags: false
-          directory: ${{ env.TEMPLATED_NAME }}
+          directory: ${{ env.TEMPLATED_NAME_2 }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
 
@@ -368,7 +477,7 @@ jobs:
           github_token: ${{ secrets.REMOTE_TOKEN }}
           branch: ${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }}
           tags: true
-          directory: ${{ env.TEMPLATED_NAME }}
+          directory: ${{ env.TEMPLATED_NAME_1 }}
           repository: ${{ secrets.REMOTE_ORIGIN }}
           force: true
 
@@ -430,6 +539,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
     strategy:
       max-parallel: 4
       matrix:
@@ -468,7 +578,9 @@ jobs:
 
       - name: Shellcheck -- Shellcheck Rendered Scripts
         run: |
-          shellcheck ${TEMPLATED_NAME}/.github/scripts/*.sh
+          cd "${TEMPLATED_NAME}"
+          shellcheck ./.github/scripts/*.sh
+          shellcheck -x ./.pre-commit/*.sh
 
       - name: Shellcheck -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'
@@ -480,16 +592,72 @@ jobs:
         run: |
           ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: shellcheck checks failed!"
 
+  toml_lint_test:
+    needs: [_create_configuration]
+
+    runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+
+    steps:
+      - name: Toml Lint Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Toml Lint Test -- Setup Environment
+        run: |
+          source ./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh
+          sudo apt-get install -y golang-github-pelletier-go-toml
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Toml Lint Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Toml Lint Test -- Install Template Requirements
+        run: |
+          source ./template/.github/scripts/requirements.sh
+
+      - name: Toml Lint Test -- Render Template
+        run: |
+          source ./template/.github/scripts/template.sh
+
+      - name: Toml Lint Test -- Run Linter
+        run: |
+          cd "${TEMPLATED_NAME}"
+          find . -type f -name "*.toml" -exec tomll "{}" \;
+          git diff --exit-code
+
+      - name: Toml Lint Test -- Report Job Status (Success)
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: toml linting was successful!"
+
+      - name: Toml Lint Test -- Report Job Status (Failure)
+        if: failure()
+        run: |
+          ./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: toml linting has failed!"
+
   yaml_lint_test:
     needs: [_create_configuration]
 
     runs-on: ubuntu-latest
     env:
       ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+      ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
     strategy:
       max-parallel: 4
       matrix:
         python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+        cookiecutter-toml-selection: [1, 2]
 
     steps:
       - name: Yaml Lint Test -- Checkout Repository
@@ -514,7 +682,9 @@ jobs:
 
       - name: Yaml Lint Test -- Render Template
         run: |
-          source ./template/.github/scripts/template.sh
+          source ./template/.github/scripts/template.sh "${SELECTION_TOML}"
+        env:
+          SELECTION_TOML: ${{ matrix.cookiecutter-toml-selection }}
 
       - name: Yaml Lint Test -- Lint Template GitHub Workflows
         uses: ibiqlik/action-yamllint@v3
