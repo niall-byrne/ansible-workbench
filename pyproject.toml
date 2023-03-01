@@ -11,7 +11,7 @@
     license = "MPL-2"
     name = "ansible-workbench"
     readme = "README.md"
-    version = "0.1.6"
+    version = "1.0.0"
 
     [tool.poetry.dependencies]
       commitizen = "^2.42.1"
