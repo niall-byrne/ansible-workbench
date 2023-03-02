@@ -5,6 +5,11 @@
 
 [tool]
 
+  [tool.commitizen]
+    bump_message = "bump(RELEASE): $current_version → $new_version"
+    version = "0.1.0"
+    version_files = ["pyproject.toml:version"]
+
   [tool.poetry]
     authors = ["{{cookiecutter.author}} <{{cookiecutter.email}}>"]
     description = "{{cookiecutter.description}}"
