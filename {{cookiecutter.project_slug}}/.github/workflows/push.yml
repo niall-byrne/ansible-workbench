@@ -1,6 +1,13 @@
 ---
 name: {{ cookiecutter.project_slug }}-push
 
+# This workflow is configured by values found in the .github/config/workflows/push.json file.
+# It's encouraged to explore the configuration before customizing this file.
+# This will allow you to upgrade to future versions of this template without complications.
+
+# For further details please consult the documentation here:
+# https://github.com/niall-byrne/ansible-workbench
+
 # Workflow Secrets:
 # SLACK_WEBHOOK              (Optional, for Slack notifications...)
 
@@ -20,20 +27,47 @@ jobs:
 
     runs-on: ubuntu-latest
     outputs:
-      configuration: ${{ steps.read_configuration.outputs.configuration }}
+      commitizen-rev-range: ${{ steps.commitizen-rev-range.outputs.json_value }}
+      molecule-test-platforms: ${{ steps.molecule-test-platforms.outputs.json_value }}
+      molecule-scenarios: ${{ steps.molecule-scenarios.outputs.json_value }}
+      python-versions: ${{ steps.python-versions.outputs.json_value }}
+      trufflehog-args: ${{ steps.trufflehog-args.outputs.json_value }}
+
 
     steps:
       - name: Create Configuration -- Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Create Configuration -- Set Configuration as Output
-        id: read_configuration
+      - name: Create Configuration -- Validate the 'push.json' File
         run: |
-          {
-            echo "configuration<<EOF"
-            cat .cookiecutter/cookiecutter.json
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+          python -m json.tool .github/config/workflows/push.json >> /dev/null
+
+      - name: Create Configuration -- Set Commitzen Rev Range as Output
+        id: commitizen-rev-range
+        run: |
+          source .github/scripts/workflow_json_value.sh jq -rM .ci_commitzen_rev_range .github/config/workflows/push.json
+
+      - name: Create Configuration -- Set Molecule Test Scenarios as Output
+        id: molecule-scenarios
+        run: |
+          EXCLUDED="$(jq -rM .ci_molecule_excluded_scenarios_regex .github/config/workflows/push.json)"
+          SCENARIOS=($(find molecule/* -maxdepth 0 -type d -not -name "default" -not -name "${EXCLUDED}" -exec basename {} \;))
+          source .github/scripts/workflow_json_value.sh jq -M --null-input '$ARGS.positional' --args "${SCENARIOS[@]}"
+
+      - name: Create Configuration -- Set Molecule Test Platforms as Output
+        id: molecule-test-platforms
+        run: |
+          source .github/scripts/workflow_json_value.sh jq -M .ci_molecule_test_platforms .github/config/workflows/push.json
+
+      - name: Create Configuration -- Set Python Versions as Output
+        id: python-versions
+        run: |
+          source .github/scripts/workflow_json_value.sh jq -M .ci_python_versions .github/config/workflows/push.json
+
+      - name: Create Configuration -- Set TruffleHog Extra Args as Output
+        id: trufflehog-args
+        run: |
+          source .github/scripts/workflow_json_value.sh jq -rM .ci_trufflehog_extra_scan_args .github/config/workflows/push.json
 
   _start_notification:
 
@@ -86,6 +120,8 @@ jobs:
     needs: [_create_configuration]
 
     runs-on: ubuntu-latest
+    env:
+      ANSIBLE_WORKBENCH_PUSH_FALLBACK_REV_RANGE: ${{ needs._create_configuration.outputs.commitizen-rev-range }}
     strategy:
       max-parallel: 4
       matrix:
@@ -211,7 +247,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Documentation Test -- Checkout Repository
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
 
@@ -224,7 +259,7 @@ jobs:
       - name: Documentation Test -- Documentation Validation
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_MARKDOWN_LINK_CHECK }}{% raw %}
         with:
-          config-file: './github/config/markdown.link.check.json'
+          config-file: './.github/config/actions/gaurav-nelson-github-action-markdown-link-check.json'
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
 
@@ -243,9 +278,9 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      max-parallel: {% endraw %}{{ cookiecutter._GITHUB_CI_DEFAULT_CONCURRENCY }}{% raw %}
       matrix:
-        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
+        python-version:  ${{ fromJSON(needs._create_configuration.outputs.python-versions) }}
 
     steps:
 
@@ -311,13 +346,13 @@ jobs:
   molecule_test:
     needs: [_create_configuration]
 
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.molecule-test-platform }}
     strategy:
-      max-parallel: 4
+      max-parallel: {% endraw %}{{ cookiecutter._GITHUB_CI_DEFAULT_CONCURRENCY }}{% raw %}
       matrix:
-        platform: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_MOLECULE_TEST_PLATFORMS }}
-        python-version: ${{ fromJson(needs._create_configuration.outputs.configuration)._GITHUB_CI_PYTHON_VERSIONS }}
-        scenario: ["docker1", "hostmachine1"]
+        molecule-test-platform: ${{ fromJSON(needs._create_configuration.outputs.molecule-test-platforms) }}
+        python-version: ${{ fromJSON(needs._create_configuration.outputs.python-versions) }}
+        scenario: ${{ fromJSON(needs._create_configuration.outputs.molecule-scenarios) }}
 
     steps:
       - name: Molecule Test -- Checkout Repository
@@ -388,14 +423,19 @@ jobs:
       - name: Molecule Test -- Report Job Status (Success)
         if: env.VERBOSE_NOTIFICATIONS == '1'
         run: |
-          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule test was successful!"
+          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: molecule test scenario '${SCENARIO}' was successful!"
+        env:
+          SCENARIO: ${{ matrix.scenario }}
 
       - name: Molecule Test -- Report Job Status (Failure)
         if: failure()
         run: |
-          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule test has failed!"
+          ./role/.github/scripts/notifications.sh "${NOTIFICATION}" ":x: molecule test scenario '${SCENARIO}' has failed!"
+        env:
+          SCENARIO: ${{ matrix.scenario }}
 
   security_test:
+    needs: [_create_configuration]
 
     runs-on: ubuntu-latest
 
@@ -416,9 +456,10 @@ jobs:
       - name: Security Test -- Run Trufflehog
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_TRUFFLEHOG }}{% raw %}
         with:
-          path: .
           base: ${{ env.PUSHED_COMMIT_START }}
+          extra_args: ${{ needs._create_configuration.outputs.trufflehog-args }}
           head: ${{ env.BRANCH_OR_TAG }}
+          path: .
 
       - name: Security Test -- Report Job Status on Success
         if: env.VERBOSE_NOTIFICATIONS == '1'

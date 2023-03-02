@@ -27,17 +27,17 @@ jobs:
 
     runs-on: ubuntu-latest
     outputs:
-      configuration: ${{ steps.read_configuration.outputs.configuration }}
+      configuration: ${{ steps.cookiecutter_configuration.outputs.json_value }}
 
     steps:
       - name: Create Configuration -- Checkout Repository
         uses: actions/checkout@v3
 
       - name: Create Configuration -- Set Cookiecutter Configuration as Output
-        id: read_configuration
+        id: cookiecutter_configuration
         run: |
           {
-            echo "configuration<<EOF"
+            echo "json_value<<EOF"
               cat cookiecutter.json
             echo "EOF"
           } >> $GITHUB_OUTPUT
@@ -264,7 +264,7 @@ jobs:
       - name: Documentation Test -- Check Markdown Links For Template
         uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
-          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/markdown.link.check.json'
+          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/actions/gaurav-nelson-github-action-markdown-link-check.json'
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
           folder-path: 'template, template/.github/workflows'
@@ -273,6 +273,7 @@ jobs:
       - name: Documentation Test -- Check Markdown Links For Rendered Template
         uses: gaurav-nelson/github-action-markdown-link-check@v1
         with:
+          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/actions/gaurav-nelson-github-action-markdown-link-check.json'
           use-quiet-mode: 'no'
           use-verbose-mode: 'yes'
           folder-path: ${{ env.TEMPLATED_NAME }}

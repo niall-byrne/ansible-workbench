@@ -17,7 +17,6 @@ on:
 
 env:
   PROJECT_NAME: "{{ cookiecutter.project_slug }}"
-  PYTHON_VERSIONS: '{{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }}'
   USER_NAME: "{{ cookiecutter.github_handle }}"
 
 {% raw %}
@@ -27,21 +26,30 @@ jobs:
 
     runs-on: ubuntu-latest
     outputs:
-      publish_to_galaxy: ${{ steps.check_for_api_key.outputs.publish_to_galaxy }}
+      publish-to-galaxy: ${{ steps.publish-to-galaxy.outputs.publish-to-galaxy }}
+      python-version: ${{ steps.python-versions.outputs.json_value }}
 
     steps:
+      - name: Create Configuration -- Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Create Configuration -- Set Publish to Galaxy as Output
-        id: check_for_api_key
+        id: publish-to-galaxy
         run: |
           [[ -n "${API_KEY}" ]] && PUBLISH_TO_GALAXY="true" || PUBLISH_TO_GALAXY="false"
-          echo "publish_to_galaxy=${PUBLISH_TO_GALAXY}" >> $GITHUB_OUTPUT
+          echo "publish-to-galaxy=${PUBLISH_TO_GALAXY}" >> $GITHUB_OUTPUT
         env:
           API_KEY: ${{ secrets.GALAXY_API_KEY }}
+
+      - name: Create Configuration -- Set Python Versions as Output
+        id: python-versions
+        run: |
+          source .github/scripts/workflow_json_value.sh jq -rM .ci_python_versions[0] .github/config/workflows/push.json
 
   publish_to_galaxy:
     needs: [_create_configuration]
 
-    if: needs._create_configuration.outputs.publish_to_galaxy == 'true'
+    if: needs._create_configuration.outputs.publish-to-galaxy == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -71,10 +79,10 @@ jobs:
         run: |
           source ./role/.github/scripts/poetry.sh "install-poetry"
 
-      - name: Publish to Galaxy -- Set up Python ${{ fromJSON(env.PYTHON_VERSIONS)[0] }}
+      - name: Publish to Galaxy -- Set up Python ${{ needs._create_configuration.outputs.python-version }}
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
-          python-version: ${{ fromJSON(env.PYTHON_VERSIONS)[0] }}
+          python-version: ${{ needs._create_configuration.outputs.python-version }}
 
       - name: Publish to Galaxy -- Initialize Cache Locations
         run: |
