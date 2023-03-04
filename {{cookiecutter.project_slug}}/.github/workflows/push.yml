@@ -75,9 +75,69 @@ jobs:
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: error reporting job status!"
 
+  commit_lint_test:
+    needs: [_create_configuration]
+
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: ${{ fromJSON(needs._create_configuration.outputs.python-versions) }}
+
+    steps:
+      - name: Commit Lint Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Commit Lint Test -- Setup Environment
+        run: |
+          source ./.github/scripts/setup.sh
+          source ./.github/scripts/pushed_commit_range.sh
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Commit Lint Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Commit Lint Test -- Install Poetry
+        run: |
+          source ./.github/scripts/poetry.sh "install-poetry"
+
+      - name: Commit Lint Test -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+
+      - name: Commit Lint Test -- Mount Poetry Cache
+        uses: actions/cache@v3
+        with:
+          key: poetry-${{ hashFiles('./pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
+
+      - name: Commit Lint Test -- Install Requirements
+        run: |
+          source ./.github/scripts/poetry.sh "install-project"
+
+      - name: Commit Lint Test -- Lint Pushed Commits
+        run: |
+          poetry run cz check --rev-range "${PUSHED_COMMIT_REV_RANGE}"
+
+      - name: Commit Lint Test -- Report Job Status on Success
+        if: env.VERBOSE_NOTIFICATIONS == '1'
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: commit lint checks succeeded!"
+
+      - name: Commit Lint Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          ./.github/scripts/notifications.sh "${NOTIFICATION}" ":x: commit lint checks failed!"
+
   create_release:
-    needs: {% endraw %}[_create_python_versions, _start_notification, documentation_test, molecule_lint_test, molecule_test, security_test,{% if cookiecutter.optional_toml_linting == 'true' %} toml_lint_test,{% endif %} yaml_lint_test]{% raw %}
-    
+    needs: {% endraw %}[_create_configuration, _start_notification, commit_lint_test, documentation_test, molecule_lint_test, molecule_test, security_test,{% if cookiecutter.optional_toml_linting == 'true' %} toml_lint_test,{% endif %} yaml_lint_test]{% raw %}
+
     runs-on: ubuntu-latest
 
     steps:
