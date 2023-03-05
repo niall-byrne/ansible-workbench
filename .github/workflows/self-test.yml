@@ -1,10 +1,10 @@
 ---
 name: ansible-workbench-self-test
 
-# Required Github Repository Secrets:
-# REMOTE_TOKEN      - GitHub token with access to the test repository.
-# REMOTE_ORIGIN     - The git remote repository name (organization/repo).
-# SLACK_WEBHOOK     - The slack webhook for build notifications.
+# Required GitHub Repository Secrets:
+# REMOTE_ORIGIN              (Required, to identify the test repository: organization/repo.)
+# REMOTE_TOKEN               (Required, for GitHub token with access to the test repository.)
+# SLACK_WEBHOOK              (Optional, for Slack notifications...)
 
 on:
   push:

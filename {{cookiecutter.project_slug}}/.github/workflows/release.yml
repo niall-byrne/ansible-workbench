@@ -2,8 +2,8 @@
 name: {{ cookiecutter.project_slug }}-publish-to-galaxy
 
 # Workflow Secrets:
-# SLACK_WEBHOOK              (Required, for slack notifications...)
-# GALAXY_API_KEY             (Required, for Ansible Galaxy Import...)
+# SLACK_WEBHOOK              (Optional, for Slack notifications...)
+# GALAXY_API_KEY             (Optional, for Ansible Galaxy Import...)
 
 on:
   release:

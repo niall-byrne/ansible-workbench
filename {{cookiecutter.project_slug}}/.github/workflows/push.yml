@@ -2,7 +2,7 @@
 name: {{ cookiecutter.project_slug }}-push
 
 # Workflow Secrets:
-# SLACK_WEBHOOK              (Required, for slack notifications...)
+# SLACK_WEBHOOK              (Optional, for Slack notifications...)
 
 on:
   push:
