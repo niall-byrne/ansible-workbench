@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/requirements.sh
+# .github/scripts/task-template-requirements.sh
 # Centralized management of template requirements installs.
 
 # CI only script

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/test_push.sh
+# .github/scripts/job-60-test-push.sh
 # Performs pushes against the test repository to trigger rendered workflows.
 
 # 1:              The name of the branch you wish to push.

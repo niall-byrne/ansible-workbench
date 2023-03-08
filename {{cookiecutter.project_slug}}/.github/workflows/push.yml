@@ -190,38 +190,38 @@ jobs:
       - name: Create Release -- Branch Filter
         id: branch_filter
         run: |
-          source .github/scripts/branch_filter.sh "${{ github.event.ref }}"
+          source .github/scripts/release_candidate.sh "${{ github.event.ref }}"
 
       - name: Create Release -- Checkout Repository (All Commits)
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
 
       - name: Create Release -- Setup Environment
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         run: |
           source ./.github/scripts/setup.sh
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Create Release -- Install Poetry
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         run: |
           source ./.github/scripts/poetry.sh "install-poetry"
 
       - name: Create Release -- Check 'pyproject.toml' Matches Tag
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         run: |
           source ./.github/scripts/version.sh
 
       - name: Create Release -- Generate Changelog
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         run:
           source ./.github/scripts/changelog.sh
 
       - name: Create Release -- Generate GitHub Release Draft
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         id: create_release
         uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_SCRIPT }}{% raw %}
         with:
@@ -233,7 +233,7 @@ jobs:
             await script({ body, context, core, github, tag })
 
       - name: Create Release -- Report Job Status (Success)
-        if: steps.branch_filter.outputs.match == 'TRUE'
+        if: steps.branch_filter.outputs.release_candidate == 'TRUE'
         run: |
           ./.github/scripts/notifications.sh "${NOTIFICATION}" ":white_check_mark: automated release has been created:\nhttps://github.com/${USER_NAME}/${PROJECT_NAME}/releases"
 

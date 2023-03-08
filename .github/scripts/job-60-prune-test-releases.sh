@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/prune_test_releases.sh
+# .github/scripts/job-60-prune-test-releases.sh
 # Remove existing releases on the test repository.
 
 # GITHUB_TOKEN:   The token used to authorize the call.

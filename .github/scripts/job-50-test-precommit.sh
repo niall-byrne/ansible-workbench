@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/test_precommit.sh
+# .github/scripts/job-50-test-precommit.sh
 # Performs tests on the pre-commit hooks.
 
 # 1:              The name of a pre-commit test scenario. (See 'main' below.)

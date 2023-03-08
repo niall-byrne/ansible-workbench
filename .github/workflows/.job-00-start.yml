@@ -1,0 +1,37 @@
+---
+name: ansible-workbench-job-start-notification
+
+on:
+  workflow_call:
+    secrets:
+      SLACK_WEBHOOK:
+        description: "Optional, enables Slack notifications."
+        required: false
+
+jobs:
+
+  start_notification:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Start -- Setup Environment
+        run: |
+          source "./template/.github/scripts/workflow-setup-environment.sh"
+          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Start -- Report Job Status on Success
+        run: |
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: workflow has started!"
+
+      - name: Start -- Report Job Status on Failure
+        if: failure()
+        run: |
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: error reporting job status!"

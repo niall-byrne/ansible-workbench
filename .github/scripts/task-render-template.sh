@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/template.sh
+# .github/scripts/task-render-template.sh
 # Perform automated templating.
 
 # 1:  Optional TOML Formatting

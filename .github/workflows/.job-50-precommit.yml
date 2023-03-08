@@ -1,0 +1,109 @@
+---
+name: ansible-workbench-job-precommit
+
+on:
+  workflow_call:
+    inputs:
+      CONFIGURATION:
+        description: "The 'cookiecutter.json' file as a configuration object."
+        required: true
+        type: string
+    secrets:
+      SLACK_WEBHOOK:
+        description: "Optional, enables Slack notifications."
+        required: false
+
+env:
+  ANSIBLE_WORKBENCH_SKIP_POETRY: 0
+  ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 0
+
+jobs:
+
+  precommit_hook_tests:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        cookiecutter-toml-selection: [1, 2]
+        python-version: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_PYTHON_VERSIONS }}
+      max-parallel: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_CONCURRENCY }}
+
+    steps:
+      - name: Pre-Commit Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Pre-Commit Test -- Setup Environment
+        run: |
+          source "./template/.github/scripts/workflow-setup-environment.sh"
+          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Pre-Commit Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Pre-Commit Test -- Install Template Requirements
+        run: |
+          source "./template/.github/scripts/task-template-requirements.sh"
+
+      - name: Pre-Commit Test -- Install tomll
+        run: |
+          sudo apt-get install -y golang-github-pelletier-go-toml
+
+      - name: Pre-Commit -- Initialize Cache Locations
+        run: |
+          mkdir -p ~/.cache/pypoetry/virtualenvs
+          source "./template/{{cookiecutter.project_slug}}/.github/scripts/ansible_cache.sh"  \
+            "$(pwd)/ansible_cache"                                                          \
+            ~/.cache
+
+      - name: Pre-Commit -- Mount Ansible Cache
+        uses: actions/cache@v3
+        with:
+          key: ansible-${{ hashFiles('./template/{{cookiecutter.project_slug}}/requirements.yml') }}-${{ env.CACHE_TTL }}
+          path: ansible_cache
+
+      - name: Pre-Commit Test -- Mount Poetry Cache
+        uses: actions/cache@v3
+        with:
+          key: poetry-${{ hashFiles('./template/{{cookiecutter.project_slug}}/pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
+          path: ~/.cache/pypoetry/virtualenvs
+
+      - name: Pre-Commit Test -- Render Template
+        run: |
+          source "./template/.github/scripts/task-render-template.sh" "${SELECTION_TOML}" "GitHub Action" "action@github.com"
+        env:
+          SELECTION_TOML: ${{ matrix.cookiecutter-toml-selection }}
+
+      - name: Pre-Commit Test -- Test Commit Lint -- Expect Failure
+        run: |
+          source "./template/.github/scripts/job-50-test-precommit.sh" "commit-lint"
+
+      - name: Pre-Commit Test -- Test Molecule Lint -- Expect Failure
+        run: |
+          source "./template/.github/scripts/job-50-test-precommit.sh" "molecule-lint"
+
+      - name: Pre-Commit Test -- Test TOML Lint -- Expect Failure
+        if: matrix.cookiecutter-toml-selection == 1
+        run: |
+          source "./template/.github/scripts/job-50-test-precommit.sh" "toml-lint-1"
+
+      - name: Pre-Commit Test -- Test TOML Lint -- Expect Success
+        if: matrix.cookiecutter-toml-selection == 1
+        run: |
+          source "./template/.github/scripts/job-50-test-precommit.sh" "toml-lint-2"
+
+      - name: Pre-Commit Test -- Report Job Status on Success
+        if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
+        run: |
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: pre-commit hook test has passed!"
+
+      - name: Pre-Commit Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: pre-commit hook test has failed!"

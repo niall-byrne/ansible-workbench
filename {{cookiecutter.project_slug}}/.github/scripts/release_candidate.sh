@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/branch_filter.sh
+# .github/scripts/release_candidate.sh
 # Evaluates if the current git reference is a release candidate.
 
 # 1: The git reference that created the workflow flow.
@@ -18,7 +18,7 @@ main() {
     MATCH="TRUE"
   fi
 
-  echo "match=${MATCH}" >> "${GITHUB_OUTPUT}"
+  echo "release_candidate=${MATCH}" >> "${GITHUB_OUTPUT}"
 
 }
 

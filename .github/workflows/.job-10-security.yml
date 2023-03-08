@@ -1,0 +1,56 @@
+---
+name: ansible-workbench-job-security
+
+on:
+  workflow_call:
+    inputs:
+      CONFIGURATION:
+        description: "The 'cookiecutter.json' file as a configuration object."
+        required: true
+        type: string
+    secrets:
+      SLACK_WEBHOOK:
+        description: "Optional, enables Slack notifications."
+        required: false
+
+env:
+  ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+  ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
+
+jobs:
+
+  run_trufflehog:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Security Test Repo -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Security Test Repo -- Setup Environment
+        run: |
+          source "./.github/scripts/workflow-setup-environment.sh"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/pushed_commit_range.sh"
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Security Test -- Run Trufflehog
+        uses: trufflesecurity/trufflehog@v3.27.1
+        with:
+          path: .
+          base: ${{ env.PUSHED_COMMIT_START }}
+          head: ${{ env.BRANCH_OR_TAG }}
+
+      - name: Security Test Repo -- Report Job Status on Success
+        if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
+        run: |
+          "./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: security checks succeeded!"
+
+      - name: Security Test Repo -- Report Job Status on Failure
+        if: failure()
+        run: |
+          "./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: security checks failed!"

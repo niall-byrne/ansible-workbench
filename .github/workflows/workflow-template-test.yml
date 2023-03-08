@@ -1,0 +1,115 @@
+---
+name: ansible-workbench-workflow-template-test
+
+on:
+  push:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+#  secrets:
+#    REMOTE_TOKEN:
+#      description: "GitHub token with access to the test repository."
+#      required: true
+#    REMOTE_ORIGIN:
+#      description: "Identifies the test repository as: owner/repository"
+#      required: true
+#    SLACK_WEBHOOK:
+#      description: "Optional, enables Slack notifications."
+#      required: false
+
+jobs:
+
+  configuration:
+
+    runs-on: ubuntu-latest
+    outputs:
+      configuration: ${{ steps.cookiecutter_configuration.outputs.json_value }}
+
+    steps:
+      - name: Create Configuration -- Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Create Configuration -- Set Cookiecutter Configuration as Output
+        id: cookiecutter_configuration
+        run: |
+          source "./{{cookiecutter.project_slug}}/.github/scripts/workflow_json_value.sh" cat "cookiecutter.json"
+
+  start:
+    uses: ./.github/workflows/.job-00-start.yml
+    secrets: inherit
+
+  success:
+    needs: [create_release]
+    uses: ./.github/workflows/.job-00-success.yml
+    secrets: inherit
+
+  security_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-10-security.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  documentation_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-30-documentation.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  molecule_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-40-molecule.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  precommit_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-50-precommit.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  push_repository_test:
+    needs: [configuration, commit_lint_test, documentation_test, molecule_lint_test, precommit_test, security_test, shellcheck_test, start, toml_lint_test, yaml_lint_test]
+    uses: ./.github/workflows/.job-60-remote-push.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  commit_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-commit-lint.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  shellcheck_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-shell-lint.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  toml_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-toml-lint.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  yaml_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-yaml-lint.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
+  create_release:
+    needs: [configuration, push_repository_test]
+    uses: ./.github/workflows/.job-99-create-release.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit

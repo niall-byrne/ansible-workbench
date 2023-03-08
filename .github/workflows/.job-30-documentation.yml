@@ -1,0 +1,83 @@
+---
+name: ansible-workbench-job-documentation
+
+on:
+  workflow_call:
+    inputs:
+      CONFIGURATION:
+        description: "The 'cookiecutter.json' file as a configuration object."
+        required: true
+        type: string
+    secrets:
+      SLACK_WEBHOOK:
+        description: "Optional, enables Slack notifications."
+        required: false
+
+env:
+  ANSIBLE_WORKBENCH_SKIP_POETRY: 1
+  ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
+
+jobs:
+
+  check_markdown_links:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_PYTHON_VERSIONS }}
+      max-parallel: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_CONCURRENCY }}
+
+    steps:
+      - name: Documentation Test -- Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          path: 'template'
+
+      - name: Documentation Test -- Setup Environment
+        run: |
+          source "./template/.github/scripts/workflow-setup-environment.sh"
+          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Documentation Test -- Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Documentation Test -- Install Template Requirements
+        run: |
+          source "./template/.github/scripts/task-template-requirements.sh"
+
+      - name: Documentation Test -- Render Template
+        run: |
+          source "./template/.github/scripts/task-render-template.sh"
+
+      - name: Documentation Test -- Check Markdown Links For Template
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/actions/gaurav-nelson-github-action-markdown-link-check.json'
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          folder-path: 'template, template/.github/workflows'
+          max-depth: 1
+
+      - name: Documentation Test -- Check Markdown Links For Rendered Template
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: 'template/{{cookiecutter.project_slug}}/.github/config/actions/gaurav-nelson-github-action-markdown-link-check.json'
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          folder-path: ${{ env.TEMPLATED_NAME }}
+          max-depth: -1
+
+      - name: Documentation Test -- Report Job Status on Success
+        if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
+        run: |
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
+
+      - name: Documentation Test -- Report Job Status on Failure
+        if: failure()
+        run: |
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: documentation checks failed!"
