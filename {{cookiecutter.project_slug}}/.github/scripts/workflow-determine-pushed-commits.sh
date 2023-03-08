@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/pushed_commit_range.sh
+# .github/scripts/workflow-determine-pushed-commits.sh
 # Retrieves the range of the commits in a push, and sets the PUSHED_COMMIT_START, PUSHED_COMMIT_REV_RANGE variables.
 
 # ANSIBLE_WORKBENCH_PUSH_FALLBACK_INDEX:     Optionally set fallback behaviour when no changed commits are detected.  (Default is the first commit in the project.)

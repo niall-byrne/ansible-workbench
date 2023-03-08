@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/poetry.sh
+# .github/scripts/task-use-poetry.sh
 # Centralized management of poetry installs.
 
 # CI only script

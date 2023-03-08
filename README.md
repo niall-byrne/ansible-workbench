@@ -93,7 +93,7 @@ A fundamental pillar of Ansible Workbench is the use of [Conventional Commits](h
 
 #### 1. Why Conventional Commits?
 - Following this standard has numerous advantages, but among the largest is its tight integration with [Semantic Versioning](https://semver.org/).
-- For the Ansible Workbench CI/CD in particular, [changelog generation]({{cookiecutter.project_slug}}/.github/scripts/changelog.sh) and [release automation]({{cookiecutter.project_slug}}/.github/workflows/release.yml) is made possible through adherence to this format.
+- For the Ansible Workbench CI/CD in particular, [changelog generation]({{cookiecutter.project_slug}}/.github/scripts/job-99-create-changelog.sh) and [release automation]({{cookiecutter.project_slug}}/.github/workflows/workflow-publish-to-galaxy.yml) is made possible through adherence to this format.
 - Being able to read commits from different people that conform to common standard also makes [interactive rebasing](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) relatively painless.
 
 #### 2. Making A Conventional Commit With Commitizen
@@ -141,7 +141,7 @@ To add tests to your role, create new scenarios with Molecule:
 
 #### iii. Add Your New Scenarios to CI/CD
 
-If you are using the rendered [GitHub CI/CD]({{cookiecutter.project_slug}}/.github/workflows/push.yml), make sure to add your new scenario to the list that are tested in the `molecule_test` step.
+If you are using the rendered [GitHub CI/CD]({{cookiecutter.project_slug}}/.github/workflows/workflow-push.yml), make sure to add your new scenario to the list that are tested in the `molecule_test` step.
 
 ### 2. The Recommended Ansible Galaxy Settings
 
@@ -201,7 +201,7 @@ You'll need to create some [secrets](https://docs.github.com/en/actions/security
 
 To make the most out of your [templated CI/CD]({{cookiecutter.project_slug}}/.github/workflows), create the following secrets:
 - `SLACK_WEBHOOK`:  This secret value can optionally be set to a [Slack Webhook](https://api.slack.com/messaging/webhooks) you can configure to get status updates on how your commit is proceeding through the CI/CD. 
-  - The verbosity of this integration can be controlled by setting the `VERBOSE_NOTIFICATIONS` environment variable to 1 in [this]({{cookiecutter.project_slug}}/.github/workflows/push.yml) workflow.
+  - The verbosity of this integration can be controlled by setting the `VERBOSE_NOTIFICATIONS` environment variable to 1 in [this]({{cookiecutter.project_slug}}/.github/workflows/workflow-push.yml) workflow.
   - See this documentation on how to create a [Slack Webhook](https://api.slack.com/messaging/webhooks) for your team.
 - `GALAXY_API_KEY`:  This secret API key can be found on your [Ansible Galaxy](https://galaxy.ansible.com/) account page, and enables automated publishing to Galaxy.
   - If you do not wish to publish your role, simply leave this secret unset. 
@@ -237,11 +237,11 @@ To make working with the CI/CD easy to get started with, there is configuration 
 
 Your workflow configuration files will be created at [.github/config]({{cookiecutter.project_slug}}/.github/config):
 - [gaurav-nelson-github-action-markdown-link-check.json]({{cookiecutter.project_slug}}/.github/config/actions/gaurav-nelson-github-action-markdown-link-check.json) is used to customize the [documentation_test](https://github.com/gaurav-nelson/github-action-markdown-link-check) step of the workflow.
-- [push.json]({{cookiecutter.project_slug}}/.github/config/workflows/push.json) is used to customize the push workflow itself.  (This is the workflow that runs on each git "push" to your GitHub repository.)
+- [push.json]({{cookiecutter.project_slug}}/.github/config/workflows/workflow-push.json) is used to customize the push workflow itself.  (This is the workflow that runs on each git "push" to your GitHub repository.)
 
 ##### Push Workflow Configuration
 
-The following values are exposed in the [push.json]({{cookiecutter.project_slug}}/.github/config/workflows/push.json) configuration file:
+The following values are exposed in the [push.json]({{cookiecutter.project_slug}}/.github/config/workflows/workflow-push.json) configuration file:
 - "ci_commitzen_rev_range": Optionally allows you to specify the range commitizen will respect when examining pushed commits.
 - "ci_molecule_excluded_scenarios_regex":  Allows you to specify a regex that will prevent certain molecule scenarios from being run by the CI/CD.
 - "ci_molecule_test_platforms":  Allows you to specify an array of [GitHub Action Platforms](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources) your role will be linted and tested with.
@@ -269,7 +269,7 @@ Tag your release with [Semantic Versioning](https://semver.org/).  (Avoid prefix
 
 #### iv. Publishing Your Release to Ansible Galaxy
 - If you have configured a [secret](#2-Setting-Up-Your-CICD) for Ansible Galaxy more automation will now begin **after** you've published your GitHub release.
-- The [release workflow]({{cookiecutter.project_slug}}/.github/workflows/release.yml) will be triggered, and will publish your release automatically to [Ansible Galaxy](https://galaxy.ansible.com/). 
+- The [release workflow]({{cookiecutter.project_slug}}/.github/workflows/workflow-publish-to-galaxy.yml) will be triggered, and will publish your release automatically to [Ansible Galaxy](https://galaxy.ansible.com/). 
 
 ## License
 

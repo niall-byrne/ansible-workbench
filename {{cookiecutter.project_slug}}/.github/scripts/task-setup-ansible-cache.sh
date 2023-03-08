@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/ansible_cache.sh
+# .github/scripts/task-setup-ansible-cache.sh
 # Creates symlinks for attaching an external cache folder for Ansible.
 # Separate folders for Ansible-Compat, and Molecule are maintained.
 

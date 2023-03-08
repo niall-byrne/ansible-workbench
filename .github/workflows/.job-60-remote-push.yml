@@ -46,7 +46,6 @@ jobs:
       - name: Push Test -- Setup Environment
         run: |
           source "./template/.github/scripts/workflow-setup-environment.sh"
-          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
@@ -92,7 +91,7 @@ jobs:
       - name: Push Test -- Trigger Release Workflow Test
         if: matrix.cookiecutter-toml-selection == 1
         run: |
-          gh workflow run -r "${TEST_PUSH_TAG}" -R "${REMOTE_ORIGIN}" release.yml -f "TAG=${TEST_PUSH_TAG}"
+          gh workflow run -r "${TEST_PUSH_TAG}" -R "${REMOTE_ORIGIN}" workflow-publish-to-galaxy.yml -f "TAG=${TEST_PUSH_TAG}"
         env:
           GITHUB_TOKEN: ${{ secrets.REMOTE_TOKEN }}
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
@@ -108,9 +107,9 @@ jobs:
       - name: Push Test -- Report Job Status on Success
         if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: push has been triggered!"
 
       - name: Push Test -- Report Job Status on Failure
         if: failure()
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: push failed to trigger!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: push failed to trigger!"

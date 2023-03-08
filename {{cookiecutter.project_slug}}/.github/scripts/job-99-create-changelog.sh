@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/changelog.sh
+# .github/scripts/job-99-create-changelog.sh
 # Generates a changelog for the specified ${BRANCH_OR_TAG}.
 
 # BRANCH_OR_TAG:  The new git tag the changelog is being generated for.

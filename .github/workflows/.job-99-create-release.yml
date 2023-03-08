@@ -26,7 +26,7 @@ jobs:
       - name: Create Release -- Filter Release Candidates
         id: filter
         run: |
-          source "./{{cookiecutter.project_slug}}/.github/scripts/release_candidate.sh" "${{ github.event.ref }}"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/job-99-release-candidate.sh" "${{ github.event.ref }}"
 
       - name: Create Release -- Checkout Repository (All Commits)
         if: steps.filter.outputs.release_candidate == 'TRUE'
@@ -38,24 +38,23 @@ jobs:
         if: steps.filter.outputs.release_candidate == 'TRUE'
         run: |
           source "./template/.github/scripts/workflow-setup-environment.sh"
-          source "./{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Create Release -- Install Poetry
         if: steps.filter.outputs.release_candidate == 'TRUE'
         run: |
-          source "./{{cookiecutter.project_slug}}/.github/scripts/poetry.sh" "install-poetry"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/task-use-poetry.sh" "install-poetry"
 
       - name: Create Release -- Check 'pyproject.toml' Matches Tag
         if: steps.filter.outputs.release_candidate == 'TRUE'
         run: |
-          source "./{{cookiecutter.project_slug}}/.github/scripts/version.sh"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/task-99-check-version.sh"
 
       - name: Create Release -- Generate Changelog
         if: steps.filter.outputs.release_candidate == 'TRUE'
         run:
-          source "./{{cookiecutter.project_slug}}/.github/scripts/changelog.sh"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/job-99-create-changelog.sh"
 
       - name: Create Release -- Generate GitHub Release Draft
         if: steps.filter.outputs.release_candidate == 'TRUE'
@@ -64,7 +63,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const script = require('./{{cookiecutter.project_slug}}/.github/scripts/release.js');
+            const script = require('./{{cookiecutter.project_slug}}/.github/scripts/job-99-create-release.js');
             const body = process.env.CHANGE_LOG_CONTENT + "\n" + process.env.CHECK_LIST_CONTENT;
             const tag = process.env.BRANCH_OR_TAG;
             await script({ body, context, core, github, tag })
@@ -76,9 +75,9 @@ jobs:
       - name: Create Release -- Report Job Status on Success
         if: steps.filter.outputs.release_candidate == 'TRUE'
         run: |
-          "./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: automated release has been created!\nhttps://github.com/${USER_NAME}/${PROJECT_NAME}/releases"
+          "./{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: automated release has been created!\nhttps://github.com/${USER_NAME}/${PROJECT_NAME}/releases"
 
       - name: Create Release -- Report Job Status on Failure
         if: failure()
         run: |
-          "./{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: automated release creation has failed!"
+          "./{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: automated release creation has failed!"

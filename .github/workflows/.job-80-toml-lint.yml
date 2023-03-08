@@ -37,7 +37,6 @@ jobs:
       - name: Toml Lint Test -- Setup Environment
         run: |
           source "./template/.github/scripts/workflow-setup-environment.sh"
-          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
@@ -73,9 +72,9 @@ jobs:
       - name: Toml Lint Test -- Report Job Status (Success)
         if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: toml linting was successful!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: toml linting was successful!"
 
       - name: Toml Lint Test -- Report Job Status (Failure)
         if: failure()
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: toml linting has failed!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: toml linting has failed!"

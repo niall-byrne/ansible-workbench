@@ -1,0 +1,127 @@
+---
+name: {{ cookiecutter.project_slug }}-workflow-push
+
+# This workflow is configured by values found in the .github/config/workflows/workflow-push.json file.
+# It's encouraged to explore the configuration before customizing this file.
+# This will allow you to upgrade to future versions of this template without complications.
+
+# For further details please consult the documentation here:
+# https://github.com/niall-byrne/ansible-workbench
+
+on:
+  push:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+#  secrets:
+#    SLACK_WEBHOOK:
+#      description: "Optional, enables Slack notifications."
+#      required: false
+#    GALAXY_API_KEY:
+#      description: "Optional, enables importing the role into Ansible Galaxy."
+#      required: false
+
+jobs:
+
+  configuration:
+
+    runs-on: ubuntu-latest
+    outputs:
+      configuration: {% raw %}${{ steps.configuration.outputs.value }}{% endraw %}
+      molecule-scenarios: {% raw %}${{ steps.molecule-scenarios.outputs.value }}{% endraw %}
+
+    steps:
+      - name: Create Configuration -- Checkout Repository
+        uses: {{ cookiecutter._GITHUB_ACTION_CHECKOUT }}
+
+      - name: Create Configuration -- Validate the 'workflow-push.json' File
+        run: |
+          python -m json.tool "./.github/config/workflows/workflow-push.json" >> /dev/null
+
+      - name: Create Configuration -- Set the Active Molecule Test Scenarios as Output
+        id: molecule-scenarios
+        run: |
+          source "./.github/scripts/workflow-identify-molecule-scenarios.sh"
+
+      - name: Create Configuration -- Set the 'workflow-push.json' Configuration File as Output
+        id: configuration
+        run: |
+          source "./.github/scripts/workflow-set-value.sh" cat "./.github/config/workflows/workflow-push.json"
+
+  start:
+    uses: ./.github/workflows/.job-00-start.yml
+    secrets: inherit
+
+  success:
+    needs: [create_release]
+    uses: ./.github/workflows/.job-00-success.yml
+    secrets: inherit
+
+  security_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-10-security.yml
+    with:
+      TRUFFLEHOG_ARGS: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_trufflehog_extra_scan_args }}{% endraw %}
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  documentation_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-30-documentation.yml
+    with:
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  molecule_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-40-molecule-lint.yml
+    with:
+      PYTHON_VERSIONS: {% raw %}${{ toJSON(fromJSON(needs.configuration.outputs.configuration).ci_python_versions) }}{% endraw %}
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  molecule_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-40-molecule-test.yml
+    with:
+      MOLECULE_PLATFORMS: {% raw %}${{ toJSON(fromJSON(needs.configuration.outputs.configuration).ci_molecule_test_platforms) }}{% endraw %}
+      MOLECULE_SCENARIOS: {% raw %}${{ needs.configuration.outputs.molecule-scenarios }}{% endraw %}
+      PYTHON_VERSIONS: {% raw %}${{ toJSON(fromJSON(needs.configuration.outputs.configuration).ci_python_versions) }}{% endraw %}
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  commit_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-commit-lint.yml
+    with:
+      COMMITIZEN_REV_RANGE: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_commitzen_rev_range }}{% endraw %}
+      PYTHON_VERSIONS: {% raw %}${{ toJSON(fromJSON(needs.configuration.outputs.configuration).ci_python_versions) }}{% endraw %}
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  {%- if cookiecutter.optional_toml_linting == 'true' %}
+
+  toml_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-toml-lint.yml
+    with:
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  {%- endif %}
+
+  workflows_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-yaml-lint.yml
+    with:
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  create_release:
+    needs: [commit_lint_test, configuration, documentation_test, molecule_lint_test, molecule_test, security_test, start,{% if cookiecutter.optional_toml_linting == 'true' %} toml_lint_test,{% endif %} workflows_lint_test]
+    uses: ./.github/workflows/.job-99-create-release.yml
+    with:
+      EXTRA_RELEASE_CONTENT: {% raw %}${{ toJSON(fromJSON(needs.configuration.outputs.configuration).ci_extra_release_content) }}{% endraw %}
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit

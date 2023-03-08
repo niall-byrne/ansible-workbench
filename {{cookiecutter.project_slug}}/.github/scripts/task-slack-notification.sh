@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/notifications.sh
+# .github/scripts/task-slack-notification.sh
 # Sends a notification to slack.
 
 # 1:            The branch information to display.

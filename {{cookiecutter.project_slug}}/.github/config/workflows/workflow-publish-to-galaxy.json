@@ -1,0 +1,4 @@
+{
+  "ci_python_version": "{{ cookiecutter._GITHUB_CI_DEFAULT_PYTHON_VERSIONS | first }}",
+  "ci_verbose_notifications": {{ cookiecutter._GITHUB_CI_DEFAULT_VERBOSE_NOTIFICATIONS | tojson }}
+}

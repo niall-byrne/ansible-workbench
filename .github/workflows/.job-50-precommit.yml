@@ -38,7 +38,6 @@ jobs:
       - name: Pre-Commit Test -- Setup Environment
         run: |
           source "./template/.github/scripts/workflow-setup-environment.sh"
-          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
@@ -58,7 +57,7 @@ jobs:
       - name: Pre-Commit -- Initialize Cache Locations
         run: |
           mkdir -p ~/.cache/pypoetry/virtualenvs
-          source "./template/{{cookiecutter.project_slug}}/.github/scripts/ansible_cache.sh"  \
+          source "./template/{{cookiecutter.project_slug}}/.github/scripts/task-setup-ansible-cache.sh"  \
             "$(pwd)/ansible_cache"                                                          \
             ~/.cache
 
@@ -101,9 +100,9 @@ jobs:
       - name: Pre-Commit Test -- Report Job Status on Success
         if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: pre-commit hook test has passed!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: pre-commit hook test has passed!"
 
       - name: Pre-Commit Test -- Report Job Status on Failure
         if: failure()
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: pre-commit hook test has failed!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: pre-commit hook test has failed!"

@@ -36,7 +36,7 @@ test_toml_lint_1() {
 
 test_toml_lint_2() {
   util_git_reset
-  sed -i.bak 's/>=3.9.0,<4.0/>=3.9.1,<4.0/g' pyproject.toml
+  sed -i.bak 's/python = ">=.*,<4.0/python = ">=3.9.0,<5.0/g' pyproject.toml
   git stage pyproject.toml
   git commit -m 'test(PRE-COMMIT): upgrade python without issue'
 }

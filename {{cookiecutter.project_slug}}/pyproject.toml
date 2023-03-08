@@ -17,7 +17,7 @@
     version = "0.1.0"
 
     [tool.poetry.dependencies]
-      python = ">={{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | first }}.0,<4.0"
+      python = ">={{ cookiecutter._GITHUB_CI_DEFAULT_PYTHON_VERSIONS | first }}.0,<4.0"
 
     [tool.poetry.dev-dependencies]
       ansible = "^7.2.0"

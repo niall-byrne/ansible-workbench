@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/release_candidate.sh
+# .github/scripts/job-99-release-candidate.sh
 # Evaluates if the current git reference is a release candidate.
 
 # 1: The git reference that created the workflow flow.

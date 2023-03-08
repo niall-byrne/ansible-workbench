@@ -24,7 +24,7 @@ jobs:
 
     runs-on: ubuntu-latest
     outputs:
-      configuration: ${{ steps.cookiecutter_configuration.outputs.json_value }}
+      configuration: ${{ steps.cookiecutter_configuration.outputs.value }}
 
     steps:
       - name: Create Configuration -- Checkout Repository
@@ -33,7 +33,7 @@ jobs:
       - name: Create Configuration -- Set Cookiecutter Configuration as Output
         id: cookiecutter_configuration
         run: |
-          source "./{{cookiecutter.project_slug}}/.github/scripts/workflow_json_value.sh" cat "cookiecutter.json"
+          source "./{{cookiecutter.project_slug}}/.github/scripts/workflow-set-value.sh" cat "cookiecutter.json"
 
   start:
     uses: ./.github/workflows/.job-00-start.yml

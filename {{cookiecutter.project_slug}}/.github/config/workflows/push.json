@@ -1,7 +1,0 @@
-{
-  "ci_commitzen_rev_range": "HEAD",
-  "ci_molecule_excluded_scenarios_regex": "{{ cookiecutter._GITHUB_CI_MOLECULE_EXCLUDED_SCENARIOS_REGEX }}",
-  "ci_molecule_test_platforms": {{ cookiecutter._GITHUB_CI_MOLECULE_TEST_PLATFORMS | tojson }},
-  "ci_python_versions": {{ cookiecutter._GITHUB_CI_PYTHON_VERSIONS | tojson }},
-  "ci_trufflehog_extra_scan_args": ""
-}

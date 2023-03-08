@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# .github/scripts/version.sh
+# .github/scripts/job-99-check-version.sh
 # Ensures the 'pyproject.toml' version matches the current Git Tag.
 
 # BRANCH_OR_TAG:  The name of the current Git Branch or Tag.

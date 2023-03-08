@@ -37,7 +37,6 @@ jobs:
       - name: Documentation Test -- Setup Environment
         run: |
           source "./template/.github/scripts/workflow-setup-environment.sh"
-          source "./template/{{cookiecutter.project_slug}}/.github/scripts/setup.sh"
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
@@ -75,9 +74,9 @@ jobs:
       - name: Documentation Test -- Report Job Status on Success
         if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: documentation checks succeeded!"
 
       - name: Documentation Test -- Report Job Status on Failure
         if: failure()
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/notifications.sh" "${NOTIFICATION}" ":x: documentation checks failed!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: documentation checks failed!"

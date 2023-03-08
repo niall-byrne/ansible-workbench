@@ -1,22 +1,28 @@
 ---
-name: ansible-workbench-job-commit-lint
-
+name: {{ cookiecutter.project_slug }}-job-commit-lint
+{% raw %}
 on:
   workflow_call:
     inputs:
-      CONFIGURATION:
-        description: "The 'cookiecutter.json' file as a configuration object."
+      COMMITIZEN_REV_RANGE:
+        description: "The range of commits commitizen will enforce."
         required: true
         type: string
+      PYTHON_VERSIONS:
+        description: "The versions of Python to use as a JSON array of string values."
+        required: true
+        type: string
+      VERBOSITY:
+        description: "Manages the types of Slack notifications."
+        required: true
+        type: boolean
     secrets:
       SLACK_WEBHOOK:
         description: "Optional, enables Slack notifications."
         required: false
 
 env:
-  ANSIBLE_WORKBENCH_SKIP_POETRY: 0
-  ANSIBLE_WORKBENCH_SKIP_PRECOMMIT: 1
-  ANSIBLE_WORKBENCH_PUSH_FALLBACK_REV_RANGE: "8f9a7c315416747257b3ef2adfc425c63d85adf8..HEAD"
+  ANSIBLE_WORKBENCH_PUSH_FALLBACK_REV_RANGE: ${{ inputs.COMMITIZEN_REV_RANGE }}
 
 jobs:
 
@@ -26,56 +32,57 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_PYTHON_VERSIONS }}
-      max-parallel: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_CONCURRENCY }}
+        python-version: ${{ fromJSON(inputs.PYTHON_VERSIONS) }}
+      max-parallel: {% endraw %}{{ cookiecutter._GITHUB_CI_DEFAULT_CONCURRENCY }}{% raw %}
 
     steps:
       - name: Commit Lint Test -- Checkout Repository
-        uses: actions/checkout@v3
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CHECKOUT }}{% raw %}
         with:
           fetch-depth: 0
 
       - name: Commit Lint Test -- Setup Environment
         run: |
           source "./.github/scripts/workflow-setup-environment.sh"
-          source "./{{cookiecutter.project_slug}}/.github/scripts/workflow-determine-pushed-commits.sh"
+          source "./.github/scripts/workflow-determine-pushed-commits.sh"
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Commit Lint Test -- Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_PYTHON }}{% raw %}
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Commit Lint Test -- Install Poetry
         run: |
-          source "./{{cookiecutter.project_slug}}/.github/scripts/task-use-poetry.sh" "install-poetry"
+          source "./.github/scripts/task-use-poetry.sh" "install-poetry"
 
       - name: Commit Lint Test -- Initialize Cache Locations
         run: |
           mkdir -p ~/.cache/pypoetry/virtualenvs
 
       - name: Commit Lint Test -- Mount Poetry Cache
-        uses: actions/cache@v3
+        uses: {% endraw %}{{ cookiecutter._GITHUB_ACTION_CACHE }}{% raw %}
         with:
           key: poetry-${{ hashFiles('./pyproject.toml') }}-${{ runner.os }}-${{ env.CACHE_TTL }}
           path: ~/.cache/pypoetry/virtualenvs
 
       - name: Commit Lint Test -- Install Requirements
         run: |
-          source "./{{cookiecutter.project_slug}}/.github/scripts/task-use-poetry.sh" "install-project"
+          source "./.github/scripts/task-use-poetry.sh" "install-project"
 
       - name: Commit Lint Test -- Lint Pushed Commits
         run: |
           poetry run cz check --rev-range "${PUSHED_COMMIT_REV_RANGE}"
 
       - name: Commit Lint Test -- Report Job Status on Success
-        if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
+        if: inputs.VERBOSITY == true
         run: |
-          "./{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: commit lint checks succeeded!"
+          "./.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: commit lint checks succeeded!"
 
       - name: Commit Lint Test -- Report Job Status on Failure
         if: failure()
         run: |
-          "./{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: commit lint checks failed!"
+          "./.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: commit lint checks failed!"
+{% endraw %}

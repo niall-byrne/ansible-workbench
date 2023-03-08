@@ -13,6 +13,7 @@ exclude_paths:
   - .ansible/
   - .cache/
   - .idea/
+  - .github/
   - .mac_maker/
   - collections/
   - roles/
