@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        cookiecutter-toml-selection: [1, 2]
+        cookiecutter-optionals-selection: [1, 2]
         python-version: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_PYTHON_VERSIONS }}
       max-parallel: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_CONCURRENCY }}
 
@@ -60,12 +60,12 @@ jobs:
 
       - name: Push Test -- Render Template
         run: |
-          source "./template/.github/scripts/task-render-template.sh" "${SELECTION_TOML}" "GitHub Action" "action@github.com"
+          source "./template/.github/scripts/task-render-template.sh" "${SELECTIONS}" "${SELECTIONS}" "GitHub Action" "action@github.com"
         env:
-          SELECTION_TOML: ${{ matrix.cookiecutter-toml-selection }}
+          SELECTIONS: ${{ matrix.cookiecutter-optionals-selection }}
 
       - name: Push Test -- Clean Up Test Releases
-        if: matrix.cookiecutter-toml-selection == 1
+        if: matrix.cookiecutter-optionals-selection == 1
         run: |
           source "./template/.github/scripts/job-60-prune-test-releases.sh"
         env:
@@ -73,7 +73,7 @@ jobs:
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_BASE }})
-        if: matrix.cookiecutter-toml-selection == 1
+        if: matrix.cookiecutter-optionals-selection == 1
         run: |
           source "./template/.github/scripts/job-60-test-push.sh" "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}"
         env:
@@ -81,7 +81,7 @@ jobs:
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Push To Test Repository (${{ env.TEST_PUSH_TAG }})
-        if: matrix.cookiecutter-toml-selection == 1
+        if: matrix.cookiecutter-optionals-selection == 1
         run: |
           source "./template/.github/scripts/job-60-test-push.sh" "${ANSIBLE_WORKBENCH_BRANCH_NAME_BASE}" "${TEST_PUSH_TAG}"
         env:
@@ -89,7 +89,7 @@ jobs:
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Trigger Release Workflow Test
-        if: matrix.cookiecutter-toml-selection == 1
+        if: matrix.cookiecutter-optionals-selection == 1
         run: |
           gh workflow run -r "${TEST_PUSH_TAG}" -R "${REMOTE_ORIGIN}" workflow-publish-to-galaxy.yml -f "TAG=${TEST_PUSH_TAG}"
         env:
@@ -97,7 +97,7 @@ jobs:
           REMOTE_ORIGIN: ${{ secrets.REMOTE_ORIGIN }}
 
       - name: Push Test -- Push To Test Repository (${{ env.ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT }})
-        if: matrix.cookiecutter-toml-selection == 2
+        if: matrix.cookiecutter-optionals-selection == 2
         run: |
           source "./template/.github/scripts/job-60-test-push.sh" "${ANSIBLE_WORKBENCH_BRANCH_NAME_DEVELOPMENT}"
         env:

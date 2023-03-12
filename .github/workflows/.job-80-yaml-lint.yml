@@ -26,6 +26,7 @@ jobs:
       fail-fast: true
       matrix:
         cookiecutter-toml-selection: [1, 2]
+        cookiecutter-workflow-selection: [1, 2]
         python-version: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_PYTHON_VERSIONS }}
       max-parallel: ${{ fromJSON(inputs.CONFIGURATION)._GITHUB_CI_DEFAULT_CONCURRENCY }}
 
@@ -52,9 +53,10 @@ jobs:
 
       - name: Yaml Lint Test -- Render Template
         run: |
-          source "./template/.github/scripts/task-render-template.sh" "${SELECTION_TOML}"
+          source "./template/.github/scripts/task-render-template.sh" "${SELECTION_TOML}" "${SELECTION_WORKFLOW}"
         env:
           SELECTION_TOML: ${{ matrix.cookiecutter-toml-selection }}
+          SELECTION_WORKFLOW: ${{ matrix.cookiecutter-workflow-selection }}
 
       - name: Yaml Lint Test -- Lint Template GitHub Workflows
         uses: ibiqlik/action-yamllint@v3
@@ -73,9 +75,9 @@ jobs:
       - name: Yaml Lint Test -- Report Job Status on Success
         if: fromJSON(inputs.CONFIGURATION)._GITHUB_CI_VERBOSE_NOTIFICATIONS == true
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: YAML linting checks succeeded!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":white_check_mark: YAML linting (toml-${{ matrix.cookiecutter-toml-selection }}, workflow-${{ matrix.cookiecutter-workflow-selection }}) checks succeeded!"
 
       - name: Yaml Lint Test -- Report Job Status on Failure
         if: failure()
         run: |
-          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: YAML linting checks failed!"
+          "./template/{{cookiecutter.project_slug}}/.github/scripts/task-slack-notification.sh" "${NOTIFICATION}" ":x: YAML linting (toml-${{ matrix.cookiecutter-toml-selection }}, workflow-${{ matrix.cookiecutter-workflow-selection }}) checks failed!"

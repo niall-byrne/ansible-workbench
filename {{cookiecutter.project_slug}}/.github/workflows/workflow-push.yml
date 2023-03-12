@@ -110,8 +110,18 @@ jobs:
     secrets: inherit
 
   {%- endif %}
+  {%- if cookiecutter.optional_workflow_linting == 'true' %}
 
-  workflows_lint_test:
+  workflow_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-workflow-lint.yml
+    with:
+      VERBOSITY: {% raw %}${{ fromJSON(needs.configuration.outputs.configuration).ci_verbose_notifications }}{% endraw %}
+    secrets: inherit
+
+  {%- endif %}
+
+  yaml_lint_test:
     needs: [configuration]
     uses: ./.github/workflows/.job-80-yaml-lint.yml
     with:
@@ -119,7 +129,7 @@ jobs:
     secrets: inherit
 
   create_release:
-    needs: [commit_lint_test, configuration, documentation_test, molecule_lint_test, molecule_test, security_test, start,{% if cookiecutter.optional_toml_linting == 'true' %} toml_lint_test,{% endif %} workflows_lint_test]
+    needs: [commit_lint_test, configuration, documentation_test, molecule_lint_test, molecule_test, security_test, start,{% if cookiecutter.optional_toml_linting == 'true' %} toml_lint_test,{% endif %} yaml_lint_test]
     uses: ./.github/workflows/.job-99-create-release.yml
     with:
       EXTRA_RELEASE_CONTENT: {% raw %}${{ toJSON(fromJSON(needs.configuration.outputs.configuration).ci_extra_release_content) }}{% endraw %}

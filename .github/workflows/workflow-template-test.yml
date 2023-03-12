@@ -100,6 +100,13 @@ jobs:
       CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
     secrets: inherit
 
+  workflow_lint_test:
+    needs: [configuration]
+    uses: ./.github/workflows/.job-80-workflow-lint.yml
+    with:
+      CONFIGURATION: ${{ needs.configuration.outputs.configuration }}
+    secrets: inherit
+
   yaml_lint_test:
     needs: [configuration]
     uses: ./.github/workflows/.job-80-yaml-lint.yml

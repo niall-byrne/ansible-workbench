@@ -41,6 +41,13 @@ test_toml_lint_2() {
   git commit -m 'test(PRE-COMMIT): upgrade python without issue'
 }
 
+test_workflow_lint() {
+  util_git_reset
+  find .github -type f -name '*.yml' -exec sed -i.bak 's/ubuntu-latest/non-existent-os/g' {} \;
+  git stage .github
+  git commit -m 'test(PRE-COMMIT): fail due to actionlint' || exit 0
+}
+
 util_fail_test() {
   echo "This commit should have failed."
   exit 127
@@ -67,6 +74,9 @@ main() {
         ;;
       toml-lint-2)
         test_toml_lint_2
+        ;;
+      workflow-lint)
+        test_workflow_lint
         ;;
       *)
         echo "Invalid test scenario."

@@ -35,3 +35,13 @@ repos:
         language: system
         pass_filenames: true
         stages: [commit]
+      - id: workflow-lint
+        name: workflow-lint
+        description: "Lint the project's GitHub workflow files."
+        entry: actionlint
+        files: "^.github/.+\\.(yaml|yml)$"
+        exclude: "^{{cookiecutter.project_slug}}/.+$"
+        language: system
+        pass_filenames: false
+        require_serial: true
+        stages: [commit]
