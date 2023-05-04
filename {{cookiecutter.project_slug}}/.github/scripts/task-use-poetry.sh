@@ -19,7 +19,7 @@ install_project() {
 
 }
 
-main () {
+main() {
 
   case $1 in
     install-poetry)

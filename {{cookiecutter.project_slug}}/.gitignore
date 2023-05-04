@@ -4,3 +4,5 @@
 .idea
 .tool-versions
 poetry.lock
+.cicd-tools/boxes/*
+!.cicd-tools/boxes/bootstrap

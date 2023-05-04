@@ -11,7 +11,7 @@
 
 set -eo pipefail
 
-main () {
+main() {
 
   MOUNT_FOLDER="${1}"
   USAGE_FOLDER="${2}"

@@ -15,7 +15,7 @@ main() {
 
   {
     echo "CHANGE_LOG_CONTENT<<EOF"
-      echo "${CHANGE_LOG_CONTENT}"
+    echo "${CHANGE_LOG_CONTENT}"
     echo "EOF"
   } >> "${GITHUB_ENV}"
 

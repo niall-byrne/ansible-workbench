@@ -35,47 +35,47 @@ error() {
 main() {
 
   pushd "$1" || error
-    if [[ "$3" == "--force" ]]; then
-      if git branch | grep "${ANSIBLE_WORKBENCH_UPDATE_BRANCH}"; then
-        set +eo pipefail
-          git checkout master
-          git reset origin/master
-          git clean -fd .
-          git branch -D "${ANSIBLE_WORKBENCH_UPDATE_BRANCH}"
-          rm -rf .git/cookiecutter
-        set -eo pipefail
-      fi
+  if [[ "$3" == "--force" ]]; then
+    if git branch | grep "${ANSIBLE_WORKBENCH_UPDATE_BRANCH}"; then
+      set +eo pipefail
+      git checkout master
+      git reset origin/master
+      git clean -fd .
+      git branch -D "${ANSIBLE_WORKBENCH_UPDATE_BRANCH}"
+      rm -rf .git/cookiecutter
+      set -eo pipefail
     fi
+  fi
 
-    ANSIBLE_WORKBENCH_SKIP_GIT_INIT=1                                     \
-    ANSIBLE_WORKBENCH_SKIP_POETRY=1                                       \
-    ANSIBLE_WORKBENCH_SKIP_PRECOMMIT=1                                    \
-    cookiecutter_project_upgrader                                         \
-      -c .cookiecutter/cookiecutter.json                                  \
-      -b "${ANSIBLE_WORKBENCH_UPDATE_BRANCH}"                             \
-      -u "$2"                                                             \
-      -f "${ANSIBLE_WORKBENCH_TEMPLATE_SOURCE}"                           \
-      -e "defaults"                                                       \
-      -e "handlers"                                                       \
-      -e "meta"                                                           \
-      -e "molecule"                                                       \
-      -e "tasks"                                                          \
-      -e "tests"                                                          \
-      -e "vars"                                                           \
-      -e ".gitignore"                                                     \
-      -e "pyproject.toml"                                                 \
-      -e "requirements.yml"                                               \
-      -e "LICENSE"                                                        \
-      -e "README.md"
+  TEMPLATE_SKIP_GIT_INIT=1 \
+    TEMPLATE_SKIP_POETRY=1 \
+    TEMPLATE_SKIP_PRECOMMIT=1 \
+    cookiecutter_project_upgrader \
+    -c .cookiecutter/cookiecutter.json \
+    -b "${ANSIBLE_WORKBENCH_UPDATE_BRANCH}" \
+    -u "$2" \
+    -f "${ANSIBLE_WORKBENCH_TEMPLATE_SOURCE}" \
+    -e "defaults" \
+    -e "handlers" \
+    -e "meta" \
+    -e "molecule" \
+    -e "tasks" \
+    -e "tests" \
+    -e "vars" \
+    -e ".gitignore" \
+    -e "pyproject.toml" \
+    -e "requirements.yml" \
+    -e "LICENSE" \
+    -e "README.md"
 
-    git checkout update-template
+  git checkout update-template
 
-    echo -e "\n==========="
-    echo -e "\nThe following files differ from the template's newest version:"
-    git diff HEAD~1 --summary
-    echo -e "\nPlease review these changes carefully, and exit from this shell when finished.  Nothing has been pushed or merged yet."
+  echo -e "\n==========="
+  echo -e "\nThe following files differ from the template's newest version:"
+  git diff HEAD~1 --summary
+  echo -e "\nPlease review these changes carefully, and exit from this shell when finished.  Nothing has been pushed or merged yet."
 
-    bash
+  bash
 
   popd || true
 

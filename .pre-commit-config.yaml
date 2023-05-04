@@ -1,47 +1,60 @@
 ---
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
 repos:
-  - repo: local
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v2.42.1
     hooks:
-      - id: commit-lint
-        name: commit-lint
-        description: "Check whether the commit message follows committing rules."
-        entry: ./{{cookiecutter.project_slug}}/.pre-commit/commit-lint.sh
-        language: system
+      - id: commitizen
         stages: [commit-msg]
-      - id: shell-lint
-        name: shell-lint
-        description: "Lint the project's shell scripts."
-        entry: shellcheck
-        files: "^.+\\.sh$"
-        exclude: "^{{cookiecutter.project_slug}}/.+$"
-        language: system
-        pass_filenames: true
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.22.0
+    hooks:
+      - id: check-jsonschema
+        name: check-cookiecutter-schema
+        files: "^(cookiecutter\\.json|\\.github/scenarios/.*\\.json)$"
+        args:
+          - "--schemafile"
+          - ".cicd-tools/boxes/bootstrap/schemas/cookiecutter.json"
         stages: [commit]
-      - id: toml-lint
-        name: toml-lint
-        description: "Lint the project's TOML files."
-        entry: ./{{cookiecutter.project_slug}}/.pre-commit/toml-lint.sh
-        files: "^.+\\.toml$"
-        language: system
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.29.0
+    hooks:
+      - id: yamllint
+        args:
+          - "-c"
+          - "./{{cookiecutter.project_slug}}/.yamllint.yml"
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$"
         stages: [commit]
-        pass_filenames: true
-      - id: yaml-lint
-        name: yaml-lint
-        description: "Lint the project's YAML files."
-        entry: ./{{cookiecutter.project_slug}}/.pre-commit/yaml-lint.sh
-        args: ["-c", "./{{cookiecutter.project_slug}}/.yamllint.yml"]
-        files: "^.+\\.(yaml|yml)$"
-        exclude: "^{{cookiecutter.project_slug}}/.+$"
-        language: system
-        pass_filenames: true
-        stages: [commit]
-      - id: workflow-lint
-        name: workflow-lint
-        description: "Lint the project's GitHub workflow files."
-        entry: actionlint
-        files: "^.github/.+\\.(yaml|yml)$"
-        exclude: "^{{cookiecutter.project_slug}}/.+$"
-        language: system
-        pass_filenames: false
-        require_serial: true
-        stages: [commit]
+  - repo: https://github.com/cicd-tools-org/pre-commit.git
+    rev: 0.1.0
+    hooks:
+      - id: format-shell
+        args:
+          - "-w"
+          - "--indent=2"
+          - "-ci"
+          - "-sr"
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$|^\\.cicd-tools/boxes/.+$"
+        files: "^.+\\.(bash|sh)$"
+      - id: format-toml
+      - id: lint-github-workflow
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$"
+      - id: lint-github-workflow-header
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$"
+      - id: lint-markdown
+        args:
+          - "-c"
+          - "{{cookiecutter.project_slug}}/.markdownlint.yml"
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$"
+      - id: lint-shell
+        args:
+          - "--color=always"
+          - "--source-path=SCRIPTDIR"
+          - "--exclude=SC2317"
+          - "-x"
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$|^\\.cicd-tools/boxes/.+$"
+      - id: spelling-commit-message
+      - id: spelling-markdown
+        exclude: "^{{cookiecutter\\.project_slug}}/.+$"

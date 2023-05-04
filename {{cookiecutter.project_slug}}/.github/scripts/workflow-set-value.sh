@@ -13,12 +13,10 @@ main() {
 
   {
     echo "value<<EOF"
-      "$@"
+    "$@"
     echo "EOF"
   } >> "${GITHUB_OUTPUT}"
 
 }
 
 main "$@"
-
-

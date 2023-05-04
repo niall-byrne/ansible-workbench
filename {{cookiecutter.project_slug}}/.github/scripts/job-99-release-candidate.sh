@@ -14,7 +14,7 @@ MATCH="FALSE"
 main() {
 
   if [[ "${1}" =~ ^refs/tags/[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+$ ]] &&
-     [[ "${1}" != "refs/tags/0.0.0" ]]; then
+    [[ "${1}" != "refs/tags/0.0.0" ]]; then
     MATCH="TRUE"
   fi
 

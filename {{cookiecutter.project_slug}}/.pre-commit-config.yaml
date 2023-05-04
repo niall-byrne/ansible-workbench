@@ -1,27 +1,52 @@
 ---
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
 repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v2.42.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.29.0
+    hooks:
+      - id: yamllint
+        args: ["-c", "./.yamllint.yml"]
+        stages: [commit]
   - repo: local
     hooks:
-      - id: commit-lint
-        name: commit-lint
-        description: "Check whether the commit message follows committing rules."
-        entry: ./.pre-commit/commit-lint.sh
-        language: system
-        stages: [commit-msg]
-      - id: molecule-lint
-        name: molecule-lint
+      - id: ansible-lint
+        name: ansible-lint
         description: "Check the profile for Ansible best practices."
-        entry: ./.pre-commit/molecule-lint.sh
-        files: "^.+\\.(yaml|yml)$|^.ansible-lint$"
-        exclude: "^.github/.+$"
+        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/ansible-lint.sh
+        files: "^.+\\.(yaml|yml)$"
         language: system
         pass_filenames: false
+        stages: [commit]
+      - id: shell-fmt
+        name: shell-fmt
+        description: "Format the project's shell scripts."
+        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/shell-fmt.sh
+        exclude: "^\\.cicd-tools/ci/.+$"
+        files: "^.+\\.(bash|sh)$"
+        language: system
+        pass_filenames: true
+        stages: [commit]
+      - id: shell-lint
+        name: shell-lint
+        description: "Lint the project's shell scripts."
+        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/shell-lint.sh
+        exclude: "^\\.cicd-tools/ci/.+$"
+        files: "^.+\\.(bash|sh)$"
+        language: system
+        pass_filenames: true
         stages: [commit]
 {%- if cookiecutter.optional_toml_linting == 'true' %}
       - id: toml-lint
         name: toml-lint
         description: "Lint the project's TOML files."
-        entry: ./.pre-commit/toml-lint.sh
+        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/toml-lint.sh
         files: "^.+\\.toml$"
         language: system
         stages: [commit]
@@ -31,10 +56,17 @@ repos:
       - id: workflow-lint
         name: workflow-lint
         description: "Lint the project's GitHub workflow files."
-        entry: actionlint
-        files: "^.github/.+\\.(yaml|yml)$"
+        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/workflow-lint.sh
+        files: "^.github/workflows/.+\\.(yaml|yml)$"
         language: system
         pass_filenames: false
-        require_serial: true
+        stages: [commit]
+      - id: workflow-header-lint
+        name: workflow-header-lint
+        description: "Lint the headers of the project's GitHub workflow files."
+        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/workflow-header-lint.sh
+        files: "^.github/workflows/.+\\.(yaml|yml)$"
+        language: system
+        pass_filenames: true
         stages: [commit]
 {%- endif %}

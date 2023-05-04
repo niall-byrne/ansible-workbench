@@ -1,0 +1,30 @@
+{
+    "project_name": "Flower Generator",
+    "project_slug": "{{ cookiecutter.project_name|slugify }}",
+    "optional_toml_linting": ["false", "true"],
+    "optional_workflow_linting": ["true", "false"],
+    "github_handle": "niall-byrne",
+    "galaxy_role_slug": "{{ cookiecutter.project_slug.replace('-', '_').replace('.', '_') }}",
+    "galaxy_namespace_slug": "{{ cookiecutter.github_handle|slugify|replace('-', '_')|replace('.', '_') }}",
+    "description": "Not the baking kind.",
+    "author": "Niall Byrne",
+    "company": "Shared Vision Solutions",
+    "email": "niall@niallbyrne.ca",
+    "_BRANCH_NAME_BASE": "master",
+    "_BRANCH_NAME_DEVELOPMENT": "dev",
+    "_DOCKER_DEFAULT_CONTAINER": "ghcr.io/cicd-tools-org/cicd-tools:master",
+    "_GITHUB_CI_ACTIONLINT_SCRIPT_URL": "https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash",
+    "_GITHUB_CI_DEFAULT_CONCURRENCY": 4,
+    "_GITHUB_CI_DEFAULT_PYTHON_VERSIONS": ["3.9"],
+    "_GITHUB_CI_DEFAULT_MOLECULE_TEST_PLATFORMS": ["ubuntu-latest"],
+    "_GITHUB_CI_DEFAULT_MOLECULE_EXCLUDED_SCENARIOS_REGEX": "^default$|^noci-.*$",
+    "_GITHUB_CI_DEFAULT_VERBOSE_NOTIFICATIONS": false,
+    "_*DO_NOT_MODIFY_THIS_FILE*": "This file is created to assist with upgrading to future versions of this template.",
+    "_copy_without_render": [
+        ".cicd-tools/boxes/bootstrap",
+        ".github/actions",
+        ".github/workflows/job*",
+        "scripts"
+    ]
+}
+

@@ -58,7 +58,7 @@ Modify the templated [requirements.yml]({{cookiecutter.project_slug}}/requiremen
 
 The [pyproject.toml]({{cookiecutter.project_slug}}/pyproject.toml) file is there to store your project's Python dependencies in accordance with [PEP 518](https://www.python.org/dev/peps/pep-0518/).
 
-[Poetry](https://python-poetry.org/docs/pyproject/#dependencies-and-dev-dependencies) is leveraged to manage the Python dependencies:
+[Poetry](https://python-poetry.org/docs/managing-dependencies/) is leveraged to manage the Python dependencies:
 - [Adding Python Packages with Poetry](https://python-poetry.org/docs/cli/#add)
 - [Removing Python Packages With Poetry](https://python-poetry.org/docs/cli/#remove)
 
@@ -93,7 +93,7 @@ A fundamental pillar of Ansible Workbench is the use of [Conventional Commits](h
 
 #### 1. Why Conventional Commits?
 - Following this standard has numerous advantages, but among the largest is its tight integration with [Semantic Versioning](https://semver.org/).
-- For the Ansible Workbench CI/CD in particular, [changelog generation]({{cookiecutter.project_slug}}/.github/scripts/job-99-create-changelog.sh) and [release automation]({{cookiecutter.project_slug}}/.github/workflows/workflow-publish-to-galaxy.yml) is made possible through adherence to this format.
+- For the Ansible Workbench CI/CD in particular, [changelog generation]({{cookiecutter.project_slug}}/.github/scripts/job-99-create-changelog.sh) and [release automation]({{cookiecutter.project_slug}}/.github/deactivated/workflow-publish-to-galaxy.yml) is made possible through adherence to this format.
 - Being able to read commits from different people that conform to common standard also makes [interactive rebasing](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) relatively painless.
 
 #### 2. Making A Conventional Commit With Commitizen
@@ -120,13 +120,13 @@ A fundamental pillar of Ansible Workbench is the use of [Conventional Commits](h
   - To ensure the CI passes, you could [trigger a manual run](https://docs.github.com/en/actions/managing-workflow-runs/manually-running-a-workflow) of the workflow.
 
 ## Writing Molecule Tests with Ansible Workbench
-There are 3 example [Molecule scenarios](https://molecule.readthedocs.io/en/stable/configuration.html#scenario) created during templating:
+There are 3 example [Molecule scenarios](https://molecule.readthedocs.io/getting-started/#molecule-scenarios) created during templating:
 
 | Scenario Name                                                                        | Description                                                                                                                |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | [default]({{cookiecutter.project_slug}}/molecule/default/molecule.yml)             | Intended as a configuration reference and for use in linting and caching dependencies.                                     |
 | [docker1]({{cookiecutter.project_slug}}/molecule/docker1/molecule.yml)             | An example using Molecule's [docker](https://github.com/ansible-community/molecule-plugins) driver.                        |
-| [hostmachine1]({{cookiecutter.project_slug}}/molecule/hostmachine1/molecule.yml)   | An example using Molecule's [delegated](https://molecule.readthedocs.io/en/stable/configuration.html#delegated) driver.    |
+| [hostmachine1]({{cookiecutter.project_slug}}/molecule/hostmachine1/molecule.yml)   | An example using Molecule's [delegated](https://molecule.readthedocs.io/configuration/#delegated) driver.    |
 
 ### 1. The Recommended Molecule Scenario Workflow
 
@@ -141,7 +141,7 @@ To add tests to your role, create new scenarios with Molecule:
 
 #### iii. Add Your New Scenarios to CI/CD
 
-If you are using the rendered [GitHub CI/CD]({{cookiecutter.project_slug}}/.github/workflows/workflow-push.yml), make sure to add your new scenario to the list that are tested in the `molecule_test` step.
+If you are using the rendered [GitHub CI/CD]({{cookiecutter.project_slug}}/.github/deactivated/workflow-push.yml), make sure to add your new scenario to the list that are tested in the `molecule_test` step.
 
 ### 2. The Recommended Ansible Galaxy Settings
 
@@ -152,7 +152,7 @@ Connections to the [Ansible Galaxy](https://galaxy.ansible.com/) API can sometim
 In your Molecule Scenario file set the dependency option `force: false` as shown [here]({{cookiecutter.project_slug}}/molecule/default/molecule.yml).
 
 In concert with this setting, it's also strongly recommended to avoid modifying the [default]({{cookiecutter.project_slug}}/molecule/default/molecule.yml) Molecule scenario:
-- You'll only download dependencies the first time they are needed, or [when they change]({{cookiecutter.project_slug}}/.pre-commit/molecule-lint.sh).
+- You'll only download dependencies the first time they are needed, or [when they change]({{cookiecutter.project_slug}}/.cicd-tools/boxes/bootstrap/pre-commit/ansible-lint.sh).
 - This will also help you get the most speed out of the default CI/CD configuration.
 
 #### ii. Set a Generous Timeout Value
@@ -163,11 +163,11 @@ In your Molecule Scenario file set the dependency option `timeout: 120` as shown
 The python library [pre-commit](https://pre-commit.com/) is installed during templating with a few useful initial hooks.
 
 ### Included Pre-Commit Hooks:
-| Hook Name                                                                      | Description                                                                                                                                                                          |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [commit-lint]({{cookiecutter.project_slug}}/.pre-commit/commit-lint.sh)     | Runs [commitizen](https://commitizen-tools.github.io/commitizen/) on your commit message to validate it.                                                                                |
-| [molecule-lint]({{cookiecutter.project_slug}}/.pre-commit/molecule-lint.sh) | Runs [ansible-lint](https://ansible-lint.readthedocs.io/) and [yamllint](https://yamllint.readthedocs.io/en/stable/) to checks your role for best Ansible practices and behaviour.      |
-| [toml-lint]({{cookiecutter.project_slug}}/.pre-commit/toml-lint.sh)         | Optionally runs [tomll](https://github.com/pelletier/go-toml) on your TOML configuration file.                                                                                          |
+| Hook Name                                                                                             | Description                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [commit-lint](https://github.com/commitizen-tools/commitizen)                                         | Runs [commitizen](https://commitizen-tools.github.io/commitizen/) on your commit message to validate it.                                                                              |
+| [molecule-lint]({{cookiecutter.project_slug}}/.cicd-tools/boxes/bootstrap/pre-commit/ansible-lint.sh) | Runs [ansible-lint](https://ansible-lint.readthedocs.io/) and [yamllint](https://yamllint.readthedocs.io/en/stable/) to checks your role for best Ansible practices and behaviour.    |
+| [toml-lint]({{cookiecutter.project_slug}}/.cicd-tools/boxes/bootstrap/pre-commit//toml-lint.sh)       | Optionally runs [tomll](https://github.com/pelletier/go-toml) on your TOML configuration file.                                                                                        |
 
 ## Using GitHub with Ansible Workbench
 
@@ -201,7 +201,7 @@ You'll need to create some [secrets](https://docs.github.com/en/actions/security
 
 To make the most out of your [templated CI/CD]({{cookiecutter.project_slug}}/.github/workflows), create the following secrets:
 - `SLACK_WEBHOOK`:  This secret value can optionally be set to a [Slack Webhook](https://api.slack.com/messaging/webhooks) you can configure to get status updates on how your commit is proceeding through the CI/CD. 
-  - The verbosity of this integration can be controlled by setting the `VERBOSE_NOTIFICATIONS` environment variable to 1 in [this]({{cookiecutter.project_slug}}/.github/workflows/workflow-push.yml) workflow.
+  - The verbosity of this integration can be controlled by setting the `VERBOSE_NOTIFICATIONS` environment variable to 1 in [this]({{cookiecutter.project_slug}}/.github/deactivated/workflow-push.yml) workflow.
   - See this documentation on how to create a [Slack Webhook](https://api.slack.com/messaging/webhooks) for your team.
 - `GALAXY_API_KEY`:  This secret API key can be found on your [Ansible Galaxy](https://galaxy.ansible.com/) account page, and enables automated publishing to Galaxy.
   - If you do not wish to publish your role, simply leave this secret unset. 
@@ -223,7 +223,7 @@ To make the most out of your [templated CI/CD]({{cookiecutter.project_slug}}/.gi
 | step                   | description                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------------- |
 | **molecule_lint_test**      | Runs [molecule lint]({{cookiecutter.project_slug}}/molecule/default/molecule.yml) on the default scenario to ensure Ansible best practices. |
-| **molecule_test**      | Runs [molecule test](https://molecule.readthedocs.io/en/latest/usage/#valid-actions) on each molecule [scenario](https://molecule.readthedocs.io/en/latest/configuration/#scenario) found [here]({{cookiecutter.project_slug}}/molecule).|
+| **molecule_test**      | Runs [molecule test](https://molecule.readthedocs.io/usage/#valid-actions) on each molecule [scenario](https://molecule.readthedocs.io/configuration/#scenario) found [here]({{cookiecutter.project_slug}}/molecule).|
 
 ##### Third Stage:
 
@@ -269,7 +269,7 @@ Tag your release with [Semantic Versioning](https://semver.org/).  (Avoid prefix
 
 #### iv. Publishing Your Release to Ansible Galaxy
 - If you have configured a [secret](#2-Setting-Up-Your-CICD) for Ansible Galaxy more automation will now begin **after** you've published your GitHub release.
-- The [release workflow]({{cookiecutter.project_slug}}/.github/workflows/workflow-publish-to-galaxy.yml) will be triggered, and will publish your release automatically to [Ansible Galaxy](https://galaxy.ansible.com/). 
+- The [release workflow]({{cookiecutter.project_slug}}/.github/deactivated/workflow-publish-to-galaxy.yml) will be triggered, and will publish your release automatically to [Ansible Galaxy](https://galaxy.ansible.com/). 
 
 ## License
 
