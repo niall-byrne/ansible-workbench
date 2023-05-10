@@ -25,6 +25,7 @@ This [cookiecutter](https://cookiecutter.readthedocs.io/) template generates a d
 - You'll need [Python](https://www.python.org/) **3.9** or later to use this template.  ([Ansible](https://www.ansible.com/) now requires this.)
 
 ## Optional Requirements
+- A container runtime environment such as [Docker](https://www.docker.com/) is recommended, to make use of the configured [pre-commit](https://pre-commit.com/) hooks.
 - An account on [Ansible Galaxy](https://galaxy.ansible.com/) is recommended if you intend to publish your role.
 - An account on [GitHub](https://github.com/) is recommended to make use of the [templated CI/CD]({{cookiecutter.project_slug}}/.github/workflows).
 - A configured [Slack Webhook](https://api.slack.com/messaging/webhooks) is also recommended for keeping tabs on the CI/CD.
@@ -80,6 +81,9 @@ The template also presents the option to render a [pre-commit](https://pre-commi
 - This is the most robust TOML formatter I'm aware of right now.
 - However, it requires installing the binary on your local system.
 
+This project makes use of the [CICD-Tools]() project, and leverages its utility container to provide this and other binaries.  This simplifies and makes the experience mostly transparent to the end user.
+
+
 If you'd like to install it and give it a try:
 - You can download the latest binary [here](https://github.com/pelletier/go-toml/releases).
 - Alternatively, your OS's package manager may support this tool.
@@ -93,7 +97,7 @@ A fundamental pillar of Ansible Workbench is the use of [Conventional Commits](h
 
 #### 1. Why Conventional Commits?
 - Following this standard has numerous advantages, but among the largest is its tight integration with [Semantic Versioning](https://semver.org/).
-- For the Ansible Workbench CI/CD in particular, [changelog generation]({{cookiecutter.project_slug}}/.github/scripts/job-99-create-changelog.sh) and [release automation]({{cookiecutter.project_slug}}/.github/deactivated/workflow-publish-to-galaxy.yml) is made possible through adherence to this format.
+- For the Ansible Workbench CI/CD in particular, changelog generation [release automation]({{cookiecutter.project_slug}}/.github/workflows/workflow-publish-to-galaxy.yml) is made possible through adherence to this format.
 - Being able to read commits from different people that conform to common standard also makes [interactive rebasing](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History) relatively painless.
 
 #### 2. Making A Conventional Commit With Commitizen
@@ -141,7 +145,7 @@ To add tests to your role, create new scenarios with Molecule:
 
 #### iii. Add Your New Scenarios to CI/CD
 
-If you are using the rendered [GitHub CI/CD]({{cookiecutter.project_slug}}/.github/deactivated/workflow-push.yml), make sure to add your new scenario to the list that are tested in the `molecule_test` step.
+If you are using the rendered [GitHub CI/CD]({{cookiecutter.project_slug}}/.github/workflows/workflow-push.yml), make sure to add your new scenario to the list that are tested in the `molecule_test` step.
 
 ### 2. The Recommended Ansible Galaxy Settings
 
@@ -201,7 +205,7 @@ You'll need to create some [secrets](https://docs.github.com/en/actions/security
 
 To make the most out of your [templated CI/CD]({{cookiecutter.project_slug}}/.github/workflows), create the following secrets:
 - `SLACK_WEBHOOK`:  This secret value can optionally be set to a [Slack Webhook](https://api.slack.com/messaging/webhooks) you can configure to get status updates on how your commit is proceeding through the CI/CD. 
-  - The verbosity of this integration can be controlled by setting the `VERBOSE_NOTIFICATIONS` environment variable to 1 in [this]({{cookiecutter.project_slug}}/.github/deactivated/workflow-push.yml) workflow.
+  - The verbosity of this integration can be controlled by setting the `ci_verbose_notifications` setting in [this]({{cookiecutter.project_slug}}/.github/config/workflows/workflow-push.json) rendered json file.
   - See this documentation on how to create a [Slack Webhook](https://api.slack.com/messaging/webhooks) for your team.
 - `GALAXY_API_KEY`:  This secret API key can be found on your [Ansible Galaxy](https://galaxy.ansible.com/) account page, and enables automated publishing to Galaxy.
   - If you do not wish to publish your role, simply leave this secret unset. 
@@ -269,7 +273,7 @@ Tag your release with [Semantic Versioning](https://semver.org/).  (Avoid prefix
 
 #### iv. Publishing Your Release to Ansible Galaxy
 - If you have configured a [secret](#2-Setting-Up-Your-CICD) for Ansible Galaxy more automation will now begin **after** you've published your GitHub release.
-- The [release workflow]({{cookiecutter.project_slug}}/.github/deactivated/workflow-publish-to-galaxy.yml) will be triggered, and will publish your release automatically to [Ansible Galaxy](https://galaxy.ansible.com/). 
+- The [release workflow]({{cookiecutter.project_slug}}/.github/workflows/workflow-publish-to-galaxy.yml) will be triggered, and will publish your release automatically to [Ansible Galaxy](https://galaxy.ansible.com/). 
 
 ## License
 

@@ -216,7 +216,7 @@ jobs:
       CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.COOKIECUTTER_CONFIGURATION)._GITHUB_CI_DEFAULT_CONCURRENCY }}
       PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.COOKIECUTTER_CONFIGURATION)._GITHUB_CI_DEFAULT_PYTHON_VERSIONS) }}
       REMOTE_TEST_TAG: "0.1.0"
-      REMOTE_RELEASE_WORKFLOW: ""
+      REMOTE_RELEASE_WORKFLOW: "flower-generator-github-workflow-publish-to-galaxy"
       SCENARIO_TRIGGER_BASE_BRANCH_PUSH: "0.toml_linting-0.workflow_linting"
       SCENARIO_TRIGGER_DEV_BRANCH_PUSH: "1.toml_linting-1.workflow_linting"
       SCENARIO_TRIGGER_TAG_PUSH: "0.toml_linting-0.workflow_linting"

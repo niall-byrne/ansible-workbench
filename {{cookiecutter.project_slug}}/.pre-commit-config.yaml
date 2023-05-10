@@ -3,6 +3,34 @@ default_install_hook_types:
   - pre-commit
   - commit-msg
 repos:
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.22.0
+    hooks:
+      - id: check-jsonschema
+        name: check-cookiecutter-schema
+        files: "^\\.cookiecutter/cookiecutter\\.json$"
+        args:
+          - "--schemafile"
+          - ".cicd-tools/boxes/bootstrap/schemas/cookiecutter.json"
+        stages: [commit]
+      - id: check-jsonschema
+        name: check-github-workflow-push-schema
+        files: "^\\.github/config/workflows/workflow-push.json$"
+        args:
+          - "--schemafile"
+          - ".github/config/schemas/workflows/workflow-push.json"
+        stages: [commit]
+      - id: check-jsonschema
+        name: check-github-workflow-publish-to-galaxy-schema
+        files: "^\\.github/config/workflows/workflow-publish-to-galaxy.json$"
+        args:
+          - "--schemafile"
+          - ".github/config/schemas/workflows/workflow-publish-to-galaxy.json"
+        stages: [commit]
+      - id: check-metaschema
+        name: check-github-workflow-metaschemas
+        files: "^\\.github/config/schemas/.*\\.json$"
+        stages: [commit]
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v2.42.1
     hooks:
@@ -12,61 +40,36 @@ repos:
     rev: v1.29.0
     hooks:
       - id: yamllint
-        args: ["-c", "./.yamllint.yml"]
+        args:
+          - "-c"
+          - "./.yamllint.yml"
         stages: [commit]
-  - repo: local
+  - repo: https://github.com/cicd-tools-org/pre-commit.git
+    rev: 0.1.0
     hooks:
-      - id: ansible-lint
-        name: ansible-lint
-        description: "Check the profile for Ansible best practices."
-        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/ansible-lint.sh
-        files: "^.+\\.(yaml|yml)$"
-        language: system
-        pass_filenames: false
-        stages: [commit]
-      - id: shell-fmt
-        name: shell-fmt
-        description: "Format the project's shell scripts."
-        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/shell-fmt.sh
-        exclude: "^\\.cicd-tools/ci/.+$"
-        files: "^.+\\.(bash|sh)$"
-        language: system
-        pass_filenames: true
-        stages: [commit]
-      - id: shell-lint
-        name: shell-lint
-        description: "Lint the project's shell scripts."
-        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/shell-lint.sh
-        exclude: "^\\.cicd-tools/ci/.+$"
-        files: "^.+\\.(bash|sh)$"
-        language: system
-        pass_filenames: true
-        stages: [commit]
+      - id: format-shell
+        args:
+          - "-w"
+          - "--indent=2"
+          - "-ci"
+          - "-sr"
 {%- if cookiecutter.optional_toml_linting == 'true' %}
-      - id: toml-lint
-        name: toml-lint
-        description: "Lint the project's TOML files."
-        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/toml-lint.sh
-        files: "^.+\\.toml$"
-        language: system
-        stages: [commit]
-        pass_filenames: true
+      - id: format-toml
 {%- endif %}
+      - id: lint-ansible
 {%- if cookiecutter.optional_workflow_linting == 'true' %}
-      - id: workflow-lint
-        name: workflow-lint
-        description: "Lint the project's GitHub workflow files."
-        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/workflow-lint.sh
-        files: "^.github/workflows/.+\\.(yaml|yml)$"
-        language: system
-        pass_filenames: false
-        stages: [commit]
-      - id: workflow-header-lint
-        name: workflow-header-lint
-        description: "Lint the headers of the project's GitHub workflow files."
-        entry: ./.cicd-tools/boxes/bootstrap/pre-commit/workflow-header-lint.sh
-        files: "^.github/workflows/.+\\.(yaml|yml)$"
-        language: system
-        pass_filenames: true
-        stages: [commit]
+      - id: lint-github-workflow
+      - id: lint-github-workflow-header
 {%- endif %}
+      - id: lint-markdown
+        args:
+          - "-c"
+          - ".markdownlint.yml"
+      - id: lint-shell
+        args:
+          - "--color=always"
+          - "--source-path=SCRIPTDIR"
+          - "--exclude=SC2317"
+          - "-x"
+      - id: spelling-commit-message
+      - id: spelling-markdown

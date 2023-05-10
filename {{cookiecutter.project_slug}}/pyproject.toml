@@ -17,18 +17,22 @@ name = '{{cookiecutter.project_slug}}'
 version = '0.1.0'
 
 [tool.poetry.dependencies]
-python = '^{{ cookiecutter._GITHUB_CI_DEFAULT_PYTHON_VERSIONS | first }}.0,<4.0'
+python = '^{{ cookiecutter._GITHUB_CI_DEFAULT_PYTHON_VERSIONS | first }}'
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group]
+[tool.poetry.group.dev]
+[tool.poetry.group.dev.dependencies]
 ansible = '^7.5.0'
 commitizen = '^3.0.0'
 pre-commit = '^3.1.1'
-yamllint = '^1.29.0'
 
-[tool.poetry.dev-dependencies.ansible-lint]
+[tool.poetry.group.dev.dependencies.ansible-lint]
 markers = "platform_system != 'Windows'"
 version = '^6.12.2'
 
-[tool.poetry.dev-dependencies.molecule]
+[tool.poetry.group.dev.dependencies.molecule]
+version = '^5.0.0'
+
+[tool.poetry.group.dev.dependencies.molecule-plugins]
 extras = ['docker']
-version = '^4.0.4'
+version = '^23.4.1'

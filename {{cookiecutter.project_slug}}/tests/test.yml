@@ -2,6 +2,3 @@
 - name: Default test for {{ cookiecutter.galaxy_namespace_slug }}.{{ cookiecutter.galaxy_role_slug }}
   hosts: localhost
   remote_user: root
-
-  roles:
-    - {{ cookiecutter.galaxy_namespace_slug }}.{{ cookiecutter.galaxy_role_slug }}

@@ -1,12 +1,10 @@
 ---
 name: {{ cookiecutter.project_slug }}-github-workflow-push
 
-# This workflow is configured by values found in the .github/config/workflows/workflow-push.json file.
-# It's encouraged to explore the configuration before customizing this file.
-# This will allow you to upgrade to future versions of this template without complications.
-
 # For further details please consult the documentation here:
 # https://github.com/niall-byrne/ansible-workbench
+
+# Begin Cookiecutter Template Content{% raw %}
 
 on:
   push:
@@ -18,33 +16,246 @@ on:
 #    SLACK_WEBHOOK:
 #      description: "Optional, enables Slack notifications."
 #      required: false
-#    GALAXY_API_KEY:
-#      description: "Optional, enables importing the role into Ansible Galaxy."
-#      required: false
 
 jobs:
 
   configuration:
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-00-generic-read_json_file.yml@master
+    with:
+      JSON_FILE_PATH: ".github/config/workflows/workflow-push.json"
 
-    runs-on: ubuntu-latest
-    outputs:
-      configuration: {% raw %}${{ steps.configuration.outputs.value }}{% endraw %}
-      molecule-scenarios: {% raw %}${{ steps.molecule-scenarios.outputs.value }}{% endraw %}
+  scenarios:
+    needs: [configuration]
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-00-generic-identify_molecule_scenarios.yml@master
+    with:
+      MOLECULE_EXCLUSION_REGEX: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_molecule_excluded_scenarios_regex }}
+      MOLECULE_SCENARIO_PATH: "molecule"
 
-    steps:
-      - name: Create Configuration -- Checkout Repository
-        uses: {{ cookiecutter._GITHUB_ACTION_CHECKOUT }}
+  start:
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-00-generic-notification.yml@master
+    with:
+      NOTIFICATION_EMOJI: ":vertical_traffic_light:"
+      NOTIFICATION_MESSAGE: "workflow has started!"
 
-      - name: Create Configuration -- Validate the 'workflow-push.json' File
-        run: |
-          python -m json.tool "./.github/config/workflows/workflow-push.json" >> /dev/null
+  security:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-10-generic-security_scan_credentials.yml@master
+    with:
+      EXTRA_BINARY_ARGS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_trufflehog_extra_scan_args }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
 
-      - name: Create Configuration -- Set the Active Molecule Test Scenarios as Output
-        id: molecule-scenarios
-        run: |
-          source "./.github/scripts/workflow-identify-molecule-scenarios.sh"
+  markdown_links:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-30-generic-markdown_links.yml@master
+    with:
+      CONFIG_FILE: ".github/config/actions/gaurav-nelson-github-action-markdown-link-check.json"
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
 
-      - name: Create Configuration -- Set the 'workflow-push.json' Configuration File as Output
-        id: configuration
-        run: |
-          source "./.github/scripts/workflow-set-value.sh" cat "./.github/config/workflows/workflow-push.json"
+  ansible_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-40-poetry-ansible_lint.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  molecule_test:
+    needs: [configuration, scenarios]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    strategy:
+      fail-fast: true
+      matrix:
+        scenario: ${{ fromJSON(needs.scenarios.outputs.SCENARIOS) }}
+        platform: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_molecule_test_platforms }}
+      max-parallel: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-40-poetry-molecule_command.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      MOLECULE_COMMAND: "test"
+      MOLECULE_SCENARIO: ${{ matrix.scenario }}
+      PLATFORM: ${{ matrix.platform }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  pre-commit_hooks:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-50-poetry-test_basic_precommit_hooks.yml@master
+    with:
+      CHECK_TOML: {% endraw %}{{ cookiecutter.optional_toml_linting }}{% raw %}
+      CHECK_WORKFLOW: {% endraw %}{{ cookiecutter.optional_workflow_linting }}{% raw %}
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  commit_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-rev_range_command.yml@master
+    with:
+      COMMAND: |
+        poetry run cz check --rev-range "${PUSHED_COMMIT_REV_RANGE}"
+      COMMAND_NAME: "Commit Message Lint"
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      REV_RANGE: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_commitizen_rev_range }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  commit_spell_check:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-rev_range_command.yml@master
+    with:
+      COMMAND: |
+        CICD_COMMIT_MESSAGES_FILE="$(mktemp XXXXXXXX.git_history_file)"
+        git log --pretty=format:%s "${PUSHED_COMMIT_REV_RANGE}" > "${CICD_COMMIT_MESSAGES_FILE}"
+        poetry run pre-commit run --hook-stage commit-msg spelling-commit-message --commit-msg-filename "${CICD_COMMIT_MESSAGES_FILE}"
+      COMMAND_NAME: "Commit Message Spelling"
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      REV_RANGE: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_commit_spelling_rev_range }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  json_schema_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: "check-jsonschema"
+      PRECOMMIT_HOOK_NAME: "Workflow Config JSON Schema Linting"
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  markdown_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: "lint-markdown"
+      PRECOMMIT_HOOK_NAME: "Markdown Linting"
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  markdown_spelling:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: "spelling-markdown"
+      PRECOMMIT_HOOK_NAME: "Markdown Spelling"
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  shell_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    strategy:
+      fail-fast: true
+      matrix:
+        hook:
+          - id: "format-shell"
+            name: "Shell Formatting"
+          - id: "lint-shell"
+            name: "Shell Linting"
+      max-parallel: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: ${{ matrix.hook.id }}
+      PRECOMMIT_HOOK_NAME: ${{ matrix.hook.name }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  {%- endraw %}{% if cookiecutter.optional_toml_linting == 'true' %}{% raw %}
+
+  toml_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: "format-toml"
+      PRECOMMIT_HOOK_NAME: "TOML Formatting"
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  {%- endraw %}{% endif %}
+  {%- if cookiecutter.optional_workflow_linting == 'true' %}{% raw %}
+
+  workflow_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    strategy:
+      fail-fast: true
+      matrix:
+        hook:
+          - id: "lint-github-workflow"
+            name: "Workflow Linting"
+          - id: "lint-github-workflow-header"
+            name: "Workflow Header Linting"
+      max-parallel: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: ${{ matrix.hook.id }}
+      PRECOMMIT_HOOK_NAME: ${{ matrix.hook.name }}
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  {%- endraw %}{% endif %}{% raw %}
+
+  yaml_lint:
+    needs: [configuration]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-80-poetry-precommit_commit_stage_hook.yml@master
+    with:
+      CONCURRENCY: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_concurrency_limit }}
+      PRECOMMIT_HOOK_ID: "yamllint"
+      PRECOMMIT_HOOK_NAME: "YAML Linting"
+      PYTHON_VERSIONS: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_python_versions) }}
+      VERBOSE_NOTIFICATIONS: ${{ fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_verbose_notifications }}
+
+  create_release:
+    permissions:
+      contents: write
+    {%- endraw %}
+    needs: [ansible_lint, configuration, commit_lint, commit_spell_check, json_schema_lint, markdown_links, markdown_lint, markdown_spelling, molecule_test, pre-commit_hooks, security, shell_lint, start, {%- if cookiecutter.optional_toml_linting == 'true' %} toml_lint, {%- endif %} {%- if cookiecutter.optional_workflow_linting == 'true' %} workflow_lint, {%- endif %} yaml_lint]
+    {%- raw %}
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-99-poetry-create_release.yml@master
+    with:
+      JSON_APPENDED_CONTENT: ${{ toJSON(fromJSON(needs.configuration.outputs.JSON_FILE_DATA).ci_extra_release_content) }}
+
+  success:
+    needs: [create_release]
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+    uses: cicd-tools-org/cicd-tools/.github/workflows/job-00-generic-notification.yml@master
+    with:
+      NOTIFICATION_EMOJI: ":checkered_flag:"
+      NOTIFICATION_MESSAGE: "workflow has completed successfully!"
+
+# End Cookiecutter Template Content{% endraw %}
