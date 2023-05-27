@@ -1,9 +1,9 @@
 # {{cookiecutter.project_slug}}
 
-### {{ cookiecutter._BRANCH_NAME_BASE | capitalize }} Branch CI:
+### {{ cookiecutter._BRANCH_NAME_BASE | capitalize }} Branch CI
 - GitHub Actions: [![{{cookiecutter.project_slug}}](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/workflow-push.yml/badge.svg?branch={{ cookiecutter._BRANCH_NAME_BASE }})](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/workflow-push.yml)
 
-### {{ cookiecutter._BRANCH_NAME_DEVELOPMENT | capitalize }} Branch CI:
+### {{ cookiecutter._BRANCH_NAME_DEVELOPMENT | capitalize }} Branch CI
 - GitHub Actions: [![{{cookiecutter.project_slug}}](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/workflow-push.yml/badge.svg?branch={{ cookiecutter._BRANCH_NAME_DEVELOPMENT }})](https://github.com/{{cookiecutter.github_handle}}/{{cookiecutter.project_slug}}/actions/workflows/workflow-push.yml)
 
 {{ cookiecutter.description }}
@@ -13,11 +13,10 @@ Requirements
 
 None
 
-
 Role Variables
 --------------
 
-None   
+None
 
 Dependencies
 ------------
