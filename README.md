@@ -1,8 +1,16 @@
 # Ansible Workbench
 
-(Powered by [CICD-Tools](https://github.com/cicd-tools-org/cicd-tools).)
-
 [Ansible](https://www.ansible.com/) role development environment powered by [Molecule](https://molecule.readthedocs.io/).
+
+---
+
+## November 2023:  Project has been Deprecated
+
+[Ansible](https://www.ansible.com/) has slowly been phasing out the use of legacy [roles](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html) in favour of the new [collections](https://docs.ansible.com/ansible/latest/collections_guide/index.html) format.
+
+At this time, I've made the decision to put this project on hiatus, but if there is sufficient interest I'll refactor it into a solution for collections.
+
+---
 
 #### Master Branch (Follows the latest production tag)
 [![ansible-workbench-self-test](https://github.com/niall-byrne/ansible-workbench/actions/workflows/workflow-template-test.yml/badge.svg?branch=master)](https://github.com/niall-byrne/ansible-workbench/actions/workflows/workflow-template-test.yml)
